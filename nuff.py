@@ -224,17 +224,18 @@ def gap(col, u, v):
   return abs(u - v)
 
 # ---- bayes: naive-bayes likelihood (m, k as kwargs) -----------
-def like(col, v, prior=0, k=1):
-  "How a column likes v (Sym: m-estimate, Num: gauss)."
+def like(col, v, n=0, prior=0, k=1):
+  "How a column likes v (Sym: m-estimate, Num: gauss); n=#rows."
   if isa(col, Sym):
-    return (col.get(v, 0) + k * prior) / (sum(col.values()) + k)
+    return (col.get(v, 0) + k * prior) / (n + k)
   s = sd(col) + 1e-32; z = 2 * s * s
   return exp(-(v - mu_(col)) ** 2 / z) / sqrt(pi * z)
 
 def likes(data, row, nrows, nklasses, m=2, k=1):
   "Log-likelihood of a row under this data (naive bayes)."
-  prior = (len(data.rows) + m) / (nrows + m * nklasses)
-  ls = [like(data.cols[at], v, prior, k) for at in data.x
+  n = len(data.rows)
+  prior = (n + m) / (nrows + m * nklasses)
+  ls = [like(data.cols[at], v, n, prior, k) for at in data.x
         if (v := row[at]) != "?"]
   return log(prior) + sum(log(x) for x in ls if x > 0)
 

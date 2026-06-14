@@ -27,6 +27,9 @@ Lightweight column model (modeled on fft.py). **Breaking.**
   first, then push a missing value to the far end (max distance),
   per the ezr/Aha rule. Old code collapsed the gap toward 0.
 - `data.goal[at]` is now a bool (`s[-1] == "+"`).
+- **`like(col, v, n=0, prior=0, k=1)`** gains an `n` (row count)
+  arg; the Sym denominator uses it instead of `sum(col.values())`
+  (Sym no longer stores its own count). `likes` passes it for you.
 
 ## 0.1.0
 

@@ -81,7 +81,8 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
       gap(col, u, v)             per-column value distance 0..1
 
     bayes  (naive bayes; m, k carried as kwargs, no global the)
-      like(col, v, prior=0, k=1)            how a column likes a value
+      like(col, v, n=0, prior=0, k=1)       how a column likes a value
+                                            (n = #rows, for the Sym case)
       likes(data, row, nrows, nklasses)     log-likelihood of a row
       confuse(pairs)                        (want,got) -> per-class
                                             o(pd, pf, prec, acc)
