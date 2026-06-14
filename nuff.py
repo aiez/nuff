@@ -11,15 +11,14 @@ class o(dict):
   "Dict with attribute access: d.x is d['x']."
   __getattr__ = dict.get
   __setattr__ = dict.__setitem__
-  __delattr__ = dict.__delitem__
   def __repr__(i): return say(i)
 
 def thing(s):
   "Coerce a string to int, float, bool, else str."
-  s = s.strip()
   for fn in (int, float):
     try: return fn(s)
     except ValueError: pass
+  s = s.strip()
   return {"True": True, "False": False}.get(s, s)
 
 def settings(s):
@@ -179,7 +178,7 @@ def Data(src=None):
 
 def clone(data, src=None):
   "New Data with data's columns; optionally seed with src rows."
-  return adds(src or [], Data([data.cols.names]))
+  return Data([data.cols.names], src)
 
 # ---- distance: exponent `p` is a keyword, never a global -------
 def minkowski(vals, p=2):
@@ -202,8 +201,9 @@ def gap(col, u, v):
   "Distance between two values of one column (0..1)."
   if u == v == "?": return 1
   if col.it is Sym: return u != v           # Sym
-  u = norm(col, u) if u != "?" else (1 if v == "?" else 0)
-  v = norm(col, v) if v != "?" else (1 if u == "?" else 0)
+  u,v = norm(col,u), norm(col,v)
+  u = u if u != "?" else (1 if v < .5 else 0)
+  v = v if v != "?" else (1 if u < .5 else 0)
   return abs(u - v)
 
 # ---- bayes: naive-bayes likelihood (m, k carried as kwargs) ----
