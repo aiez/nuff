@@ -56,8 +56,8 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
       same(xs, ys, cliff=.195, conf=1.36)
       top_tier(groups, ...) names tied for best (min median)
 
-    columns  (lightweight: Sym = {value:count}, Num = (n, mu, m2);
-              symp/nump dispatch by type, no tags)
+    columns  (lightweight: Sym = dict {value:count}, Num = (n,mu,m2);
+              dispatch by isa(col, Sym), no tags)
       Sym() Num(n,mu,m2)       a dict / a 3-tuple; n_/mu_/m2_ read it
       welford(num,v,inc=1)     Num + v (inc=-1 removes) -> new Num
       mix(i,j,inc=1)           merge two same-type cols (inc=-1 = out)

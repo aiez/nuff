@@ -6,6 +6,7 @@ import re, sys, random, traceback
 from math import log2, log, exp, sqrt, pi
 from bisect import bisect_left, bisect_right
 from types import SimpleNamespace as o    # attr-record: o(a=1).a == 1
+isa = isinstance
 
 # ---- records, io, format ----------------------------------------
 def thing(s):
@@ -105,14 +106,10 @@ def top_tier(groups, cliff=0.195, conf=1.36):
     else: break
   return best
 
-# ---- columns: Sym = {value:count}, Num = (n, mu, m2) -----------
-def Sym(): return {}
-def Num(n=0, mu=0, m2=0): return (n, mu, m2)
-
+# ---- columns: a Sym is a {value:count} dict, a Num a 3-tuple ---
+Sym = dict                 # isa(col, Sym) reads "col is a Sym"
+def Num(n=0, mu=0, m2=0): return (n, mu, m2)   # (count, mean, sum-sq)
 def mu_(x): return x[1]    # the mean of a Num (n, mu, m2)
-
-def symp(x): return isinstance(x, dict)    # dict = Sym (o is not a dict)
-def nump(x): return isinstance(x, tuple)   # tuple = Num
 
 def sd(num):
   "Standard deviation of a Num from its m2."
@@ -134,7 +131,7 @@ def norm(num, v):
 
 def mix(i, j, inc=1):
   "Combine two same-type cols; inc=-1 removes j from i."
-  if symp(i):
+  if isa(i, Sym):
     return {k: i.get(k, 0) + inc * j.get(k, 0) for k in i | j}
   (ni, mui, m2i), (nj, muj, m2j) = i, j
   n = ni + inc * nj
@@ -166,10 +163,10 @@ def roles(data, names):
 
 def add(it, v, inc=1):
   "Add to a Sym/Num/Data; RETURNS the (new) it. Skips '?'."
-  if symp(it):
+  if isa(it, Sym):
     if v != "?": it[v] = it.get(v, 0) + inc
     return it
-  if nump(it):
+  if isa(it, tuple):                                      # Num
     return welford(it, v, inc) if v != "?" else it
   (it.rows.append if inc == 1 else it.rows.remove)(v)      # Data: v a row
   for at in it.cols: it.cols[at] = add(it.cols[at], v[at], inc)
@@ -187,11 +184,11 @@ def clone(data, src=None):
 
 def mid(col):
   "Central tendency: mode (Sym) or mean (Num)."
-  return max(col, key=col.get) if symp(col) else mu_(col)
+  return max(col, key=col.get) if isa(col, Sym) else mu_(col)
 
 def spread(col):
   "Diversity: entropy (Sym) or stdev (Num)."
-  if nump(col): return sd(col)
+  if not isa(col, Sym): return sd(col)                   # Num
   n = sum(col.values())
   return -sum(c/n * log2(c/n) for c in col.values())
 
@@ -215,7 +212,7 @@ def distx(data, r1, r2, **kw):
 def gap(col, u, v):
   "Distance between two values of one column (0..1)."
   if u == v == "?": return 1
-  if symp(col): return u != v               # Sym
+  if isa(col, Sym): return u != v           # Sym
   u = norm(col, u) if u != "?" else (1 if v == "?" else 0)
   v = norm(col, v) if v != "?" else (1 if u == "?" else 0)
   return abs(u - v)
@@ -223,7 +220,7 @@ def gap(col, u, v):
 # ---- bayes: naive-bayes likelihood (m, k carried as kwargs) ----
 def like(col, v, prior=0, k=1):
   "How much a column likes value v (Sym: m-estimate, Num: gauss)."
-  if symp(col):
+  if isa(col, Sym):
     return (col.get(v, 0) + k * prior) / (sum(col.values()) + k)
   s = sd(col) + 1e-32; z = 2 * s * s
   return exp(-(v - mu_(col)) ** 2 / z) / sqrt(pi * z)
