@@ -57,11 +57,14 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
 
     columns / table  (Num, Sym, Cols, Data all just o-records)
       Num(txt,at) Sym(txt,at)  column summaries (Sym counts in .has)
-      add(it,v)                add v to a Num/Sym, or a row to a Data
+      add(it,v,inc=1)          add v to a Num/Sym, or a row to a Data;
+                               inc=-1 subtracts (Num resets if n<2)
       adds(src,it)             add every item of src to it
-      mid(col) spread(col) norm(col,v)
-      Cols(names)              -> o(all, x, y, klass) split by role
-      Data(rows)               adds(rows, o(cols, rows)); 1st row = names
+      mid(col) spread(col)     mean/mode, stdev/entropy
+      norm(col,v)              0..1 via a logistic on v's z-score
+      Cols(names)              -> o(names, all, x, y, klass) by role
+      Data(rows)               -> o(cols, rows); first row = names
+      clone(data, src=None)    new Data, same columns, fresh rows
                                Upper=Num lower=Sym; +/-/! goal; ! klass; X skip
       Data(rows)           header sets roles: Upper=Num, lower=Sym,
                            +/-/! = goal, X = skip

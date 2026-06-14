@@ -3,7 +3,7 @@
 # rand, stats, columns, distance.  (c) 2026 Tim Menzies, MIT.
 # No global config: pass params (p, cliff, conf, rng) as keywords.
 import sys, random, traceback
-from math import log2
+from math import log2, exp
 from bisect import bisect_left, bisect_right
 
 # ---- records, io, format ----------------------------------------
@@ -42,7 +42,8 @@ def say(x, dec=2):
   return str(x)
 
 def main(funs, argv=None, seed=1):
-  "Run --name funs (or all if none named); reseed before each.\n  --seed=N overrides the default random seed (1)."
+  """Run --name funs (or all if none named); reseed before each.
+  --seed=N overrides the default random seed (1)."""
   argv = sys.argv[1:] if argv is None else argv
   for a in argv:
     if a.startswith("--seed="): seed = int(a.split("=", 1)[1])
@@ -102,7 +103,7 @@ def top_tier(groups, cliff=0.195, conf=1.36):
 # ---- columns: Num, Sym, Cols are all just o-records ------------
 def Num(txt="", at=0):
   "Numeric column summary (an o-record)."
-  return o(txt=txt, at=at, n=0, mu=0, m2=0, lo=1e32, hi=-1e32,
+  return o(txt=txt, at=at, n=0, mu=0, m2=0,
            heaven=0 if txt[-1:] == "-" else 1)
 
 def Sym(txt="", at=0):
@@ -110,21 +111,21 @@ def Sym(txt="", at=0):
   return o(txt=txt, at=at, n=0, has={})
 
 def add(it, v, inc=1):
-  "Add v to a Data (v=row), Sym, or Num, in place. Skips '?'."
+  "Add v to a Data row, Sym, or Num, in place. Skips '?'."
   if "rows" in it:                                 # Data: v is a row
-    if it.cols:
-      for col in it.cols.all: add(col, v[col.at], inc)
-      it.rows.append(v)
-    else: it.cols = Cols(v)
+    for col in it.cols.all: add(col, v[col.at], inc)
+    it.rows.append(v)
     return v
   if v == "?": return v
   it.n += inc
   if "has" in it:                                  # Sym
     it.has[v] = it.has.get(v, 0) + inc
-  else:                                            # Num
-    it.lo, it.hi = min(it.lo, v), max(it.hi, v)
-    d = v - it.mu; it.mu += d / it.n
-    it.m2 += d * (v - it.mu)
+  elif it.n < 2 and inc < 0:                       # Num emptied out
+    it.n = it.mu = it.m2 = 0
+  else:                                            # Num: Welford +/-
+    d = v - it.mu
+    it.mu += inc * d / it.n
+    it.m2 += inc * d * (v - it.mu)
   return v
 
 def adds(src, col=None):
@@ -146,13 +147,15 @@ def spread(col):
   return (col.m2 / (col.n - 1)) ** 0.5 if col.n > 1 else 0
 
 def norm(col, v):
-  "Map v to 0..1 over the seen lo..hi (Num only)."
+  "Map v to 0..1 via a logistic on its z-score (Num only)."
   if v == "?": return v
-  return (v - col.lo) / (col.hi - col.lo + 1e-32)
+  z = (v - col.mu) / (spread(col) + 1e-32)
+  return 1 / (1 + exp(-1.7 * max(-3, min(3, z))))
 
 def Cols(names):
-  "Summaries from header names, split into roles.\n  Upper=Num, lower=Sym; +/-/! = goal y; ! = klass; X = skip."
-  cols = o(all=[], x=[], y=[], klass=None)
+  """Summaries from header names, split into roles.
+  Upper=Num, lower=Sym; +/-/! = goal y; ! = klass; X = skip."""
+  cols = o(names=names, all=[], x=[], y=[], klass=None)
   for at, s in enumerate(names):
     col = Num(s, at) if s[0].isupper() else Sym(s, at)
     cols.all.append(col)
@@ -162,8 +165,13 @@ def Cols(names):
   return cols
 
 def Data(src=None):
-  "Table (data.cols + data.rows); first row = column names."
-  return adds(src or [], o(cols=None, rows=[]))
+  "Table: data.cols (from the first row) + data.rows."
+  src = iter(src or [])
+  return adds(src, o(cols=Cols(next(src, [])), rows=[]))
+
+def clone(data, src=None):
+  "New Data with data's columns; optionally seed with src rows."
+  return adds(src or [], Data([data.cols.names]))
 
 # ---- distance: exponent `p` is a keyword, never a global -------
 def minkowski(vals, p=2):
