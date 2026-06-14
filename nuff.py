@@ -5,15 +5,9 @@
 import re, sys, random, traceback
 from math import log2, log, exp, sqrt, pi
 from bisect import bisect_left, bisect_right
+from types import SimpleNamespace as o    # attr-record: o(a=1).a == 1
 
 # ---- records, io, format ----------------------------------------
-class o(dict):
-  "Dict with attribute access: d.x is d['x']."
-  __getattr__ = dict.get
-  __setattr__ = dict.__setitem__
-  __delattr__ = dict.__delitem__
-  def __repr__(i): return say(i)
-
 def thing(s):
   "Coerce a string to int, float, bool, else str."
   s = s.strip()
@@ -38,6 +32,7 @@ def say(x, dec=2):
   "Pretty string: whole floats as ints, else `dec` places."
   if isinstance(x, float):
     return str(int(x)) if x == int(x) else f"{x:.{dec}f}"
+  if isinstance(x, o): x = vars(x)                 # unwrap a namespace
   if isinstance(x, dict):
     return "{" + ", ".join(f"{k}: {say(v,dec)}"
                  for k, v in sorted(x.items())) + "}"
@@ -118,8 +113,8 @@ def n_(x):  return x[0]
 def mu_(x): return x[1]
 def m2_(x): return x[2]
 
-def symp(x): return type(x) is dict      # plain dict = Sym (o is not)
-def nump(x): return type(x) is tuple     # tuple = Num
+def symp(x): return isinstance(x, dict)    # dict = Sym (o is not a dict)
+def nump(x): return isinstance(x, tuple)   # tuple = Num
 
 def sd(num):
   "Standard deviation of a Num from its m2."

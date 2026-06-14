@@ -38,7 +38,7 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
 ## API
 
     records / io / format
-      o(dict)        attribute access: d.x is d['x']
+      o              SimpleNamespace alias: o(x=1).x == 1
       thing(s)       coerce str -> int|float|bool|str
       settings(s)    every var=val in s -> an o (vals coerced)
       csv(file)      yield typed rows ('#' = comment)
