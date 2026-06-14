@@ -61,4 +61,4 @@ def test_stats():
   assert list(top_tier({"a":[1,2,3], "b":[9,9,9]})) == ["a"]
 
 if __name__ == "__main__":
-  raise SystemExit(main(globals()))   # no --name -> all; --seed=N sets seed
+  raise SystemExit(main(globals(), __doc__))   # __doc__ = help above
