@@ -160,7 +160,8 @@ def roles(data, names):
     data.cols[at] = Num() if s[0].isupper() else Sym()
     if s[-1] == "X": continue
     if s[-1] in "+-!":
-      data.y.append(at); data.goal[at] = s[-1] == "+"
+      data.y.append(at)
+      data.goal[at] = s[-1] == "+"
       if s[-1] == "!": data.klass = at
     else: data.x.append(at)
 
@@ -217,8 +218,10 @@ def gap(col, u, v):
   "Distance between two values of one column (0..1)."
   if u == v == "?": return 1
   if isa(col, Sym): return u != v           # Sym
-  u = norm(col, u) if u != "?" else (1 if v == "?" else 0)
-  v = norm(col, v) if v != "?" else (1 if u == "?" else 0)
+  if u != "?": u = norm(col, u)             # normalize known
+  if v != "?": v = norm(col, v)             # values first ...
+  if u == "?": u = 1 if v < 0.5 else 0      # ... then a missing
+  if v == "?": v = 1 if u < 0.5 else 0      # one goes far away
   return abs(u - v)
 
 # ---- bayes: naive-bayes likelihood (m, k as kwargs) -----------
