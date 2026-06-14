@@ -78,6 +78,8 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
     bayes  (naive bayes; m, k carried as kwargs, no global the)
       like(col, v, prior=0, k=1)            how a column likes a value
       likes(data, row, nrows, nklasses)     log-likelihood of a row
+      confuse(pairs)                        (want,got) -> per-class
+                                            o(pd, pf, prec, acc)
 
 ## STYLE
 

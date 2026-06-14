@@ -2,8 +2,9 @@
 # test_gape.py: smoke tests, run via `make test` or --name.
 import random
 import os
-from gape import (o, csv, thing, say, main, shuffle, some,
-                  same, top_tier, Cols, Data, clone, likes, disty, distx)
+from gape import (o, csv, thing, say, main, shuffle, some, same,
+                  top_tier, Cols, Data, clone, likes, confuse,
+                  disty, distx)
 
 def test_o():
   p = o(a=1, b=3.0); assert p.a == 1 and say(p.b) == "3"
@@ -40,6 +41,11 @@ def test_like():
   ok = sum(max(ds, key=lambda cl: likes(ds[cl], r, len(d.rows), len(ds)))
            == r[k] for r in d.rows)
   assert ok / len(d.rows) > 0.7
+
+def test_confuse():
+  "per-class pd/pf from (want, got) pairs."
+  m = confuse([("a","a"), ("a","a"), ("b","b"), ("b","a")])
+  assert m["a"].pd == 1 and m["b"].pd == 0.5 and m["a"].pf == 0.5
 
 def test_stats():
   assert same([1,2,3,4], [1,2,3,4])

@@ -212,3 +212,16 @@ def likes(data, row, nrows, nklasses, m=2, k=1):
   ls = [like(c, v, prior, k) for c in data.cols.x
         if (v := row[c.at]) != "?"]
   return log(prior) + sum(log(x) for x in ls if x > 0)
+
+def confuse(pairs):
+  "From (want, got) pairs, an o(pd, pf, prec, acc) per unique want."
+  out, n = {}, len(pairs)
+  for k in sorted({want for want, _ in pairs}):
+    tp = sum(want == k and got == k for want, got in pairs)
+    fn = sum(want == k and got != k for want, got in pairs)
+    fp = sum(want != k and got == k for want, got in pairs)
+    tn = n - tp - fn - fp
+    out[k] = o(label=k, pd=tp / (tp + fn + 1e-32),
+               pf=fp / (fp + tn + 1e-32),
+               prec=tp / (tp + fp + 1e-32), acc=(tp + tn) / (n + 1e-32))
+  return out
