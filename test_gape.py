@@ -1,18 +1,24 @@
 #!/usr/bin/env python3 -B
 # test_gape.py: smoke tests, run via `make test` or --name.
-from gape import o, csv, thing, say, cliffs, ks, same, top_tier, main
-from data import Data, Num, Sym, add, adds, mid, spread, norm
-from dist import disty, distx, minkowski
+import random
+from gape import (o, csv, thing, say, main, shuffle, some, one,
+                  cliffs, ks, same, top_tier, Data, Num, Sym,
+                  add, adds, mid, spread, norm, disty, distx)
 
 def test_o():
-  "attribute-dict + pretty say."
   p = o(a=1, b=3.0); assert p.a == 1 and say(p.b) == "3"
 
 def test_thing():
   assert thing("3") == 3 and thing("2.5") == 2.5 and thing("x") == "x"
 
+def test_rand():
+  "Own RNG -> repeatable; no global state."
+  r1, r2 = random.Random(1), random.Random(1)
+  xs = list(range(20))
+  assert shuffle(xs, rng=r1) == shuffle(xs, rng=r2)
+  assert len(some(xs, 5, rng=random.Random(1))) == 5
+
 def test_data():
-  "build a table, check distances."
   d = Data(csv("../optimiz/auto93.csv"))
   assert len(d.rows) == 398 and len(d.y) == 3
   assert distx(d, d.rows[0], d.rows[0]) == 0
@@ -26,6 +32,5 @@ def test_stats():
 
 if __name__ == "__main__":
   fns = {k[5:]: v for k, v in globals().items() if k.startswith("test_")}
-  if len(__import__("sys").argv) > 1:
-    raise SystemExit(main(fns))
-  [v() for v in fns.values()]      # no args -> run all
+  if len(__import__("sys").argv) > 1: raise SystemExit(main(fns))
+  [v() for v in fns.values()]

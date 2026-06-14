@@ -6,7 +6,7 @@ MAIN   := gape.py
 EXT    := py
 LANG   := python
 SRC    := *.py
-LINT   := ruff check gape.py data.py dist.py
+LINT   := ruff check gape.py
 TOOLS  := python3:run ruff:lint
 PKG    := python3 gawk ruff neovim tmux
 
