@@ -160,7 +160,7 @@ def roles(data, names):
     data.cols[at] = Num() if s[0].isupper() else Sym()
     if s[-1] == "X": continue
     if s[-1] in "+-!":
-      data.y.append(at); data.goal[at] = 1 if s[-1] == "+" else 0
+      data.y.append(at); data.goal[at] = s[-1] == "+"
       if s[-1] == "!": data.klass = at
     else: data.x.append(at)
 
