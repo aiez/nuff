@@ -172,15 +172,15 @@ def minkowski(vals, p=2):
   for v in vals: total += v ** p; n += 1
   return (total / (n or 1)) ** (1 / p)
 
-def disty(data, row, p=2):
+def disty(data, row, **kw):
   "Distance of a row to the best goals (0 = ideal)."
   return minkowski((abs(norm(c, row[c.at]) - c.heaven)
-                    for c in data.cols.y), p=p)
+                    for c in data.cols.y), **kw)
 
-def distx(data, r1, r2, p=2):
+def distx(data, r1, r2, **kw):
   "Distance between two rows over the x-columns."
   return minkowski((gap(c, r1[c.at], r2[c.at])
-                    for c in data.cols.x), p=p)
+                    for c in data.cols.x), **kw)
 
 def gap(col, u, v):
   "Distance between two values of one column (0..1)."
