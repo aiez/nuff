@@ -16,3 +16,7 @@ include $(KONFIG)/Makefile
 
 test: ## smoke-test the three modules (needs ../optimiz)
 	@python3 -B test_gape.py && echo "ok gape"
+
+push2pypi: ## build + upload to PyPI (needs ~/.pypirc account token)
+	@python3 -m build && python3 -m twine upload dist/*
+	@rm -rf dist build *.egg-info
