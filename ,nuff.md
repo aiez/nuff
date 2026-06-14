@@ -56,11 +56,12 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
       same(xs, ys, cliff=.195, conf=1.36)
       top_tier(groups, ...) names tied for best (min median)
 
-    columns / table  (Num, Sym, Cols, Data all just o-records)
+    columns / table  (Num, Sym, Cols, Data: o-records tagged i.it)
       Num(txt,at) Sym(txt,at)  column summaries (Sym counts in .has)
-      add(it,v,inc=1)          add v to a Num/Sym, or a row to a Data;
+      add(i,v,inc=1)           one polymorphic add; dispatch on i.it:
+                               Num/Sym value, Cols/Data a whole row.
                                inc=-1 subtracts (Num resets if n<2)
-      adds(src,it)             add every item of src to it
+      adds(src,col)            add every item of src to col
       mid(col) spread(col)     mean/mode, stdev/entropy
       norm(col,v)              0..1 via a logistic on v's z-score
       Cols(names)              -> o(names, all, x, y, klass) by role
