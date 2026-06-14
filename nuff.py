@@ -109,9 +109,7 @@ def top_tier(groups, cliff=0.195, conf=1.36):
 def Sym(): return {}
 def Num(n=0, mu=0, m2=0): return (n, mu, m2)
 
-def n_(x):  return x[0]
-def mu_(x): return x[1]
-def m2_(x): return x[2]
+def mu_(x): return x[1]    # the mean of a Num (n, mu, m2)
 
 def symp(x): return isinstance(x, dict)    # dict = Sym (o is not a dict)
 def nump(x): return isinstance(x, tuple)   # tuple = Num
