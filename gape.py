@@ -5,9 +5,9 @@
 import sys, random, traceback
 from math import log2
 from bisect import bisect_left, bisect_right
+from collections import namedtuple
 
 # ---- records, io, format ----------------------------------------
-
 class o(dict):
   "Dict with attribute access: d.x is d['x']."
   __getattr__ = dict.get
@@ -56,7 +56,6 @@ def main(funs, argv=None, seed=1):
   return fails
 
 # ---- rand: pass your own random.Random(seed) for repeatability -
-
 def shuffle(lst, rng=random):
   "Shuffled copy via the given RNG (no global config)."
   lst = lst[:]; rng.shuffle(lst); return lst
@@ -70,7 +69,6 @@ def one(lst, rng=random):
   return rng.choice(lst)
 
 # ---- stats: are two samples the same? ---------------------------
-
 def cliffs(xs, ys):
   "Cliff's delta effect size in 0..1 (0=identical)."
   ys = sorted(ys); m = len(ys)
@@ -102,51 +100,46 @@ def top_tier(groups, cliff=0.195, conf=1.36):
     else: break
   return best
 
-# ---- columns: Num (slots/tuple-backed), Sym (dict) --------------
+# ---- columns: Num is a named tuple, Sym a def returning a dict --
+_Num = namedtuple("Num", "txt at n mu m2 lo hi heaven")
 
-class Num:
-  "Numeric column: running n, mean, m2, lo, hi, goal."
-  __slots__ = "txt at n mu m2 lo hi heaven".split()
-  def __init__(i, txt="", at=0):
-    i.txt, i.at, i.n, i.mu, i.m2 = txt, at, 0, 0, 0
-    i.lo, i.hi = 1e32, -1e32
-    i.heaven = 0 if txt[-1:] == "-" else 1
+def Num(txt="", at=0):
+  "Numeric column as an immutable named tuple."
+  return _Num(txt, at, 0, 0.0, 0.0, 1e32, -1e32,
+              0 if txt[-1:] == "-" else 1)
 
-class Sym:
-  "Symbolic column: counts of each seen value."
-  __slots__ = "txt at n has".split()
-  def __init__(i, txt="", at=0):
-    i.txt, i.at, i.n, i.has = txt, at, 0, {}
+def Sym(txt="", at=0):
+  "Symbolic column: a dict of counts plus its meta."
+  return o(txt=txt, at=at, n=0, has={})
 
 def add(col, v, inc=1):
-  "Update a Num or Sym with value v (inc times). Skips '?'."
-  if v == "?": return v
+  "Return col updated by v. Num -> new tuple, Sym -> same dict."
+  if v == "?": return col
+  if isinstance(col, tuple):                       # Num
+    n = col.n + inc; d = v - col.mu; mu = col.mu + d / n
+    return col._replace(n=n, mu=mu, m2=col.m2 + d * (v - mu),
+                        lo=min(col.lo, v), hi=max(col.hi, v))
+  col.has[v] = col.has.get(v, 0) + inc             # Sym
   col.n += inc
-  if type(col) is Sym:
-    col.has[v] = col.has.get(v, 0) + inc
-  else:
-    col.lo, col.hi = min(col.lo, v), max(col.hi, v)
-    d = v - col.mu; col.mu += d / col.n
-    col.m2 += d * (v - col.mu)
-  return v
+  return col
 
 def adds(src, col=None):
   "Summarize an iterable into a Num (default) or given col."
   col = Num() if col is None else col
-  for v in src: add(col, v)
+  for v in src: col = add(col, v)
   return col
 
 def mid(col):
   "Central tendency: mean (Num) or mode (Sym)."
-  return (max(col.has, key=col.has.get)
-          if type(col) is Sym else col.mu)
+  return (col.mu if isinstance(col, tuple)
+          else max(col.has, key=col.has.get))
 
 def spread(col):
   "Diversity: stdev (Num) or entropy (Sym)."
-  if type(col) is Sym:
-    n = col.n
-    return -sum(v/n * log2(v/n) for v in col.has.values())
-  return (col.m2 / (col.n - 1)) ** 0.5 if col.n > 1 else 0
+  if isinstance(col, tuple):
+    return (col.m2 / (col.n - 1)) ** 0.5 if col.n > 1 else 0
+  n = col.n
+  return -sum(v/n * log2(v/n) for v in col.has.values())
 
 def norm(col, v):
   "Map v to 0..1 over the seen lo..hi (Num only)."
@@ -154,26 +147,26 @@ def norm(col, v):
   return (v - col.lo) / (col.hi - col.lo + 1e-32)
 
 def Data(src=None):
-  "Table: column summaries (x, y, all) + the raw rows."
-  data = o(x=[], y=[], all=[], rows=[])
+  "Table: columns (all), x/y col lists, role ats, and rows."
+  data = o(all=[], x=[], y=[], xat=[], yat=[], rows=[])
   for row in (src or []): row1(data, row)
   return data
 
 def row1(data, row):
   "Add a row; the first row (names) builds the columns."
-  if data.all:
-    for col in data.all: add(col, row[col.at])
-    data.rows.append(row)
-  else:
+  if not data.all:
     for at, s in enumerate(row):
-      col = (Num if s[0].isupper() else Sym)(s, at)
-      data.all.append(col)
+      data.all.append(Num(s, at) if s[0].isupper() else Sym(s, at))
       if s[-1] != "X":
-        (data.y if s[-1] in "+-!" else data.x).append(col)
+        (data.yat if s[-1] in "+-!" else data.xat).append(at)
+  else:
+    data.all = [add(c, row[c.at]) for c in data.all]
+    data.rows.append(row)
+  data.x = [data.all[i] for i in data.xat]   # refresh: Num is immutable
+  data.y = [data.all[i] for i in data.yat]
   return data
 
 # ---- distance: exponent `p` is a keyword, never a global -------
-
 def minkowski(vals, p=2):
   "Aggregate per-item distances via the p-norm."
   total, n = 0, 0
@@ -193,7 +186,7 @@ def distx(data, row1, row2, p=2):
 def gap(col, u, v):
   "Distance between two values of one column (0..1)."
   if u == v == "?": return 1
-  if type(col) is Sym: return u != v
+  if isinstance(col, dict): return u != v   # Sym
   u = norm(col, u) if u != "?" else (1 if v == "?" else 0)
   v = norm(col, v) if v != "?" else (1 if u == "?" else 0)
   return abs(u - v)

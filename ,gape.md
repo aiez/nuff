@@ -56,9 +56,10 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
       top_tier(groups, ...) names tied for best (min median)
 
     columns / table
-      Num  Sym             slots-numeric / dict-symbolic summaries
-      add(col,v) adds(src,col)
-      mid(col) spread(col) norm(col,v)
+      Num(txt,at)          numeric column: a named tuple (immutable)
+      Sym(txt,at)          symbolic column: a dict of counts
+      add(col,v)           returns updated col (Num=new tuple, Sym=same)
+      adds(src,col) mid(col) spread(col) norm(col,v)
       Data(rows)           header sets roles: Upper=Num, lower=Sym,
                            +/-/! = goal, X = skip
 
