@@ -1,0 +1,8 @@
+                        
+  __ _  __ _ _ __   ___ 
+ / _` |/ _` | '_ \ / _ \
+| (_| | (_| | |_) |  __/
+ \__, |\__,_| .__/ \___|
+ |___/      |_|         
+tiny python tricks. http://tiny.cc/gape
+"the kernel under my apps, with no global the."

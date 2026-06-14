@@ -1,0 +1,31 @@
+#!/usr/bin/env python3 -B
+# test_gape.py: smoke tests, run via `make test` or --name.
+from gape import o, csv, thing, say, cliffs, ks, same, top_tier, main
+from data import Data, Num, Sym, add, adds, mid, spread, norm
+from dist import disty, distx, minkowski
+
+def test_o():
+  "attribute-dict + pretty say."
+  p = o(a=1, b=3.0); assert p.a == 1 and say(p.b) == "3"
+
+def test_thing():
+  assert thing("3") == 3 and thing("2.5") == 2.5 and thing("x") == "x"
+
+def test_data():
+  "build a table, check distances."
+  d = Data(csv("../optimiz/auto93.csv"))
+  assert len(d.rows) == 398 and len(d.y) == 3
+  assert distx(d, d.rows[0], d.rows[0]) == 0
+  assert 0 <= disty(d, d.rows[0]) <= 1
+  assert disty(d, d.rows[0], p=1) != disty(d, d.rows[0], p=3)
+
+def test_stats():
+  assert same([1,2,3,4], [1,2,3,4])
+  assert not same([1,2,3,4], [7,8,9,10])
+  assert list(top_tier({"a":[1,2,3], "b":[9,9,9]})) == ["a"]
+
+if __name__ == "__main__":
+  fns = {k[5:]: v for k, v in globals().items() if k.startswith("test_")}
+  if len(__import__("sys").argv) > 1:
+    raise SystemExit(main(fns))
+  [v() for v in fns.values()]      # no args -> run all
