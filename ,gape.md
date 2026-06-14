@@ -75,6 +75,10 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
       distx(data, r1, r2, p=2)   distance between two rows on x
       gap(col, u, v)             per-column value distance 0..1
 
+    bayes  (naive bayes; m, k carried as kwargs, no global the)
+      like(col, v, prior=0, k=1)            how a column likes a value
+      likes(data, row, nrows, nklasses)     log-likelihood of a row
+
 ## STYLE
 
     Minimal python: one file, one-line comments, ~65-char lines,

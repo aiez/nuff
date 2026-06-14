@@ -3,7 +3,7 @@
 # rand, stats, columns, distance.  (c) 2026 Tim Menzies, MIT.
 # No global config: pass params (p, cliff, conf, rng) as keywords.
 import sys, random, traceback
-from math import log2, exp
+from math import log2, log, exp, sqrt, pi
 from bisect import bisect_left, bisect_right
 
 # ---- records, io, format ----------------------------------------
@@ -197,3 +197,18 @@ def gap(col, u, v):
   u = norm(col, u) if u != "?" else (1 if v == "?" else 0)
   v = norm(col, v) if v != "?" else (1 if u == "?" else 0)
   return abs(u - v)
+
+# ---- bayes: naive-bayes likelihood (m, k carried as kwargs) ----
+def like(col, v, prior=0, k=1):
+  "How much a column likes value v (Sym: m-estimate, Num: gauss)."
+  if "has" in col:
+    return (col.has.get(v, 0) + k * prior) / (col.n + k)
+  sd = spread(col) + 1e-32; z = 2 * sd * sd
+  return exp(-(v - col.mu) ** 2 / z) / sqrt(pi * z)
+
+def likes(data, row, nrows, nklasses, m=2, k=1):
+  "Log-likelihood of a row under this data (naive bayes)."
+  prior = (len(data.rows) + m) / (nrows + m * nklasses)
+  ls = [like(c, v, prior, k) for c in data.cols.x
+        if (v := row[c.at]) != "?"]
+  return log(prior) + sum(log(x) for x in ls if x > 0)
