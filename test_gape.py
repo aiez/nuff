@@ -1,9 +1,8 @@
 #!/usr/bin/env python3 -B
 # test_gape.py: smoke tests, run via `make test` or --name.
 import random
-from gape import (o, csv, thing, say, main, shuffle, some, one,
-                  cliffs, ks, same, top_tier, Data, Cols, Num, Sym,
-                  add, adds, mid, spread, norm, disty, distx)
+from gape import (o, csv, thing, say, main, shuffle, some,
+                  same, top_tier, Cols, Data, disty, distx)
 
 def test_o():
   p = o(a=1, b=3.0); assert p.a == 1 and say(p.b) == "3"
