@@ -1,14 +1,14 @@
 #!/usr/bin/env python3 -B
 # nuff.py: tiny python tricks in one file -- records, io, format,
 # rand, stats, columns, distance.  (c) 2026 Tim Menzies, MIT.
-# No global config: pass params (p, cliff, conf, rng) as keywords.
+# No global config: params (p, cliff, conf, rng) as kwargs.
 import re, sys, random, traceback
 from math import log2, log, exp, sqrt, pi
 from bisect import bisect_left, bisect_right
-from types import SimpleNamespace as o    # attr-record: o(a=1).a == 1
+from types import SimpleNamespace as o   # o(a=1).a == 1
 isa = isinstance
 
-# ---- records, io, format ----------------------------------------
+# ---- records, io, format --------------------------------------
 def thing(s):
   "Coerce a string to int, float, bool, else str."
   s = s.strip()
@@ -19,7 +19,8 @@ def thing(s):
 
 def settings(s):
   "Parse every var=val in a string into an o (vals coerced)."
-  return o(**{k: thing(v) for k, v in re.findall(r"(\w+)=(\S+)", s)})
+  pairs = re.findall(r"(\w+)=(\S+)", s)
+  return o(**{k: thing(v) for k, v in pairs})
 
 def csv(file, clean=lambda s: s.partition("#")[0].split(",")):
   "Yield typed rows from a CSV file ('#' starts a comment)."
@@ -31,24 +32,25 @@ def csv(file, clean=lambda s: s.partition("#")[0].split(",")):
 
 def say(x, dec=2):
   "Pretty string: whole floats as ints, else `dec` places."
-  if isinstance(x, float):
+  if isa(x, float):
     return str(int(x)) if x == int(x) else f"{x:.{dec}f}"
-  if isinstance(x, o): x = vars(x)                 # unwrap a namespace
-  if isinstance(x, dict):
+  if isa(x, o): x = vars(x)            # unwrap a namespace
+  if isa(x, dict):
     return "{" + ", ".join(f"{k}: {say(v,dec)}"
                  for k, v in sorted(x.items())) + "}"
-  if isinstance(x, (list, tuple)):
+  if isa(x, (list, tuple)):
     return "[" + ", ".join(say(v, dec) for v in x) + "]"
   return str(x)
 
 def main(g, help=None, argv=None, seed=1):
-  """Run g's test_* fns: --name picks some, none = all; reseed each.
+  """Run g's test_* fns: --name picks some, none=all; reseed.
   -h prints `help` (default g's __doc__) + the commands. --seed=N
   sets the seed. Pass globals() as g."""
   fns = {k[5:]: v for k, v in g.items() if k.startswith("test_")}
   argv = sys.argv[1:] if argv is None else argv
   if "-h" in argv or "--help" in argv:
-    print((help if help is not None else g.get("__doc__") or "").strip())
+    doc = help if help is not None else g.get("__doc__") or ""
+    print(doc.strip())
     print("\ncommands:", *(" --" + n for n in fns))
     return 0
   for a in argv:
@@ -61,7 +63,7 @@ def main(g, help=None, argv=None, seed=1):
     except Exception: fails += 1; traceback.print_exc()
   return fails
 
-# ---- rand: pass your own random.Random(seed) for repeatability -
+# ---- rand: own random.Random(seed) for repeatability ----------
 def shuffle(lst, rng=random):
   "Shuffled copy via the given RNG (no global config)."
   lst = lst[:]; rng.shuffle(lst); return lst
@@ -74,7 +76,7 @@ def one(lst, rng=random):
   "One random item via rng."
   return rng.choice(lst)
 
-# ---- stats: are two samples the same? ---------------------------
+# ---- stats: are two samples the same? -------------------------
 def cliffs(xs, ys):
   "Cliff's delta effect size in 0..1 (0=identical)."
   ys = sorted(ys); m = len(ys)
@@ -106,9 +108,9 @@ def top_tier(groups, cliff=0.195, conf=1.36):
     else: break
   return best
 
-# ---- columns: a Sym is a {value:count} dict, a Num a 3-tuple ---
+# ---- columns: a Sym is a {value:count} dict, Num a 3-tuple ----
 Sym = dict                 # isa(col, Sym) reads "col is a Sym"
-def Num(n=0, mu=0, m2=0): return (n, mu, m2)   # (count, mean, sum-sq)
+def Num(n=0, mu=0, m2=0): return (n, mu, m2)  # count,mean,sumsq
 def mu_(x): return x[1]    # the mean of a Num (n, mu, m2)
 
 def sd(num):
@@ -144,9 +146,10 @@ def mix(i, j, inc=1):
 # ---- table: roles in Data, columns held by at-index -----------
 def Data(src=None):
   """Table o(names, cols{at:col}, x, y, goal, klass, rows).
-  Upper=Num lower=Sym; +/-/! = goal y; + maximizes; ! klass; X skip."""
+  Upper=Num lower=Sym; +-! = y goal (+max); ! klass; X skip."""
   src = iter(src or [])
-  data = o(names=[], cols={}, x=[], y=[], goal={}, klass=None, rows=[])
+  data = o(names=[], cols={}, x=[], y=[], goal={},
+           klass=None, rows=[])
   roles(data, next(src, []))
   return adds(src, data)
 
@@ -166,9 +169,9 @@ def add(it, v, inc=1):
   if isa(it, Sym):
     if v != "?": it[v] = it.get(v, 0) + inc
     return it
-  if isa(it, tuple):                                      # Num
+  if isa(it, tuple):                          # Num
     return welford(it, v, inc) if v != "?" else it
-  (it.rows.append if inc == 1 else it.rows.remove)(v)      # Data: v a row
+  (it.rows.append if inc == 1 else it.rows.remove)(v)  # row
   for at in it.cols: it.cols[at] = add(it.cols[at], v[at], inc)
   return it
 
@@ -179,7 +182,7 @@ def adds(src, it=None):
   return it
 
 def clone(data, src=None):
-  "New Data with data's columns; optionally seed with src rows."
+  "New Data with data's columns; optionally seed src rows."
   return Data([data.names] + (src or []))
 
 def mid(col):
@@ -188,11 +191,11 @@ def mid(col):
 
 def spread(col):
   "Diversity: entropy (Sym) or stdev (Num)."
-  if not isa(col, Sym): return sd(col)                   # Num
+  if not isa(col, Sym): return sd(col)        # Num
   n = sum(col.values())
   return -sum(c/n * log2(c/n) for c in col.values())
 
-# ---- distance: exponent `p` is a keyword, never a global -------
+# ---- distance: exponent `p` is a keyword, never global --------
 def minkowski(vals, p=2):
   "Aggregate per-item distances via the p-norm."
   total, n = 0, 0
@@ -201,8 +204,9 @@ def minkowski(vals, p=2):
 
 def disty(data, row, **kw):
   "Distance of a row to the best goals (0 = ideal)."
-  return minkowski((abs(norm(data.cols[at], row[at]) - data.goal[at])
-                    for at in data.y if row[at] != "?"), **kw)
+  return minkowski(
+    (abs(norm(data.cols[at], row[at]) - data.goal[at])
+     for at in data.y if row[at] != "?"), **kw)
 
 def distx(data, r1, r2, **kw):
   "Distance between two rows over the x-columns."
@@ -217,9 +221,9 @@ def gap(col, u, v):
   v = norm(col, v) if v != "?" else (1 if u == "?" else 0)
   return abs(u - v)
 
-# ---- bayes: naive-bayes likelihood (m, k carried as kwargs) ----
+# ---- bayes: naive-bayes likelihood (m, k as kwargs) -----------
 def like(col, v, prior=0, k=1):
-  "How much a column likes value v (Sym: m-estimate, Num: gauss)."
+  "How a column likes v (Sym: m-estimate, Num: gauss)."
   if isa(col, Sym):
     return (col.get(v, 0) + k * prior) / (sum(col.values()) + k)
   s = sd(col) + 1e-32; z = 2 * s * s
@@ -233,7 +237,7 @@ def likes(data, row, nrows, nklasses, m=2, k=1):
   return log(prior) + sum(log(x) for x in ls if x > 0)
 
 def confuse(pairs):
-  "From (want, got) pairs, an o(pd, pf, prec, acc) per unique want."
+  "(want, got) pairs -> o(pd, pf, prec, acc) per want."
   out, n = {}, len(pairs)
   for k in sorted({want for want, _ in pairs}):
     tp = sum(want == k and got == k for want, got in pairs)
@@ -242,5 +246,6 @@ def confuse(pairs):
     tn = n - tp - fn - fp
     out[k] = o(label=k, pd=tp / (tp + fn + 1e-32),
                pf=fp / (fp + tn + 1e-32),
-               prec=tp / (tp + fp + 1e-32), acc=(tp + tn) / (n + 1e-32))
+               prec=tp / (tp + fp + 1e-32),
+               acc=(tp + tn) / (n + 1e-32))
   return out
