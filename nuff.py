@@ -122,23 +122,22 @@ def Sym(txt="", at=0):
 
 def add(i, v, inc=1):
   "Add v to a Num/Sym/Cols/Data, in place. Skips '?'; inc=-1 subtracts."
-  if i.it is Data:                                 # v is a whole row
+  if i.it is Data:                                 
     (i.rows.append if inc == 1 else i.rows.remove)(v)
     add(i.cols, v, inc)
-    return v
-  if i.it is Cols:                                 # spread the row over cols
+  elif i.it is Cols:
     for col in i.all: add(col, v[col.at], inc)
-    return v
-  if v == "?": return v
-  i.n += inc
-  if i.it is Sym:
+  elif v == "?": pass                              # skip missing values
+  elif i.it is Sym:
+    i.n += inc
     i.has[v] = i.has.get(v, 0) + inc
-  elif i.n < 2 and inc < 0:                        # Num emptied out
-    i.n = i.mu = i.m2 = 0
-  else:                                            # Num: Welford +/-
-    d = v - i.mu
-    i.mu += inc * d / i.n
-    i.m2 += inc * d * (v - i.mu)
+  elif i.it is Num:
+    i.n += inc
+    if i.n < 2 and inc < 0: i.n = i.mu = i.m2 = 0
+    else: 
+      d = v - i.mu
+      i.mu += inc * d / i.n
+      i.m2 += inc * d * (v - i.mu)
   return v
 
 def adds(src, col=None):
