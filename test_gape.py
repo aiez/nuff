@@ -32,5 +32,4 @@ def test_stats():
 
 if __name__ == "__main__":
   fns = {k[5:]: v for k, v in globals().items() if k.startswith("test_")}
-  if len(__import__("sys").argv) > 1: raise SystemExit(main(fns))
-  [v() for v in fns.values()]
+  raise SystemExit(main(fns))      # no --name -> all; --seed=N to set seed

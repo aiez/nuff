@@ -42,14 +42,17 @@ def say(x, dec=2):
     return "[" + ", ".join(say(v, dec) for v in x) + "]"
   return str(x)
 
-def main(funs, argv=None):
-  "Run funs[name]() for each `--name` in argv; count fails."
+def main(funs, argv=None, seed=1):
+  "Run --name funs (or all if none named); reseed before each.\n  --seed=N overrides the default random seed (1)."
+  argv = sys.argv[1:] if argv is None else argv
+  for a in argv:
+    if a.startswith("--seed="): seed = int(a.split("=", 1)[1])
+  named = [a[2:] for a in argv if a[:2] == "--" and "=" not in a]
   fails = 0
-  for a in (sys.argv[1:] if argv is None else argv):
-    name = a[2:] if a.startswith("--") else a
-    if name in funs:
-      try: funs[name]()
-      except Exception: fails += 1; traceback.print_exc()
+  for name in ([n for n in named if n in funs] or list(funs)):
+    random.seed(seed)
+    try: funs[name]()
+    except Exception: fails += 1; traceback.print_exc()
   return fails
 
 # ---- rand: pass your own random.Random(seed) for repeatability -
