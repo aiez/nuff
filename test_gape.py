@@ -1,5 +1,9 @@
 #!/usr/bin/env python3 -B
-# test_gape.py: smoke tests, run via `make test` or --name.
+"""test_gape.py: gape smoke tests.
+
+Usage: python3 -B test_gape.py [--name ...] [--seed=N]
+  no --name runs every test; -h shows this help.
+"""
 import random
 import os
 from gape import (o, csv, thing, settings, say, main, shuffle, some,

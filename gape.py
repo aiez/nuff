@@ -45,11 +45,16 @@ def say(x, dec=2):
     return "[" + ", ".join(say(v, dec) for v in x) + "]"
   return str(x)
 
-def main(g, argv=None, seed=1):
-  """Run g's test_* fns: --name picks some, none = all; reseed
-  each. --seed=N sets the seed. Pass globals() as g."""
+def main(g, help=None, argv=None, seed=1):
+  """Run g's test_* fns: --name picks some, none = all; reseed each.
+  -h prints `help` (default g's __doc__) + the commands. --seed=N
+  sets the seed. Pass globals() as g."""
   fns = {k[5:]: v for k, v in g.items() if k.startswith("test_")}
   argv = sys.argv[1:] if argv is None else argv
+  if "-h" in argv or "--help" in argv:
+    print((help if help is not None else g.get("__doc__") or "").strip())
+    print("\ncommands:", *(" --" + n for n in fns))
+    return 0
   for a in argv:
     if a.startswith("--seed="): seed = int(a.split("=", 1)[1])
   named = [a[2:] for a in argv if a[:2] == "--" and "=" not in a]
