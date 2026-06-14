@@ -2,7 +2,7 @@
 # test_gape.py: smoke tests, run via `make test` or --name.
 import random
 from gape import (o, csv, thing, say, main, shuffle, some, one,
-                  cliffs, ks, same, top_tier, Data, Num, Sym,
+                  cliffs, ks, same, top_tier, Data, Cols, Num, Sym,
                   add, adds, mid, spread, norm, disty, distx)
 
 def test_o():
@@ -18,9 +18,13 @@ def test_rand():
   assert shuffle(xs, rng=r1) == shuffle(xs, rng=r2)
   assert len(some(xs, 5, rng=random.Random(1))) == 5
 
+def test_cols():
+  c = Cols(["name", "Age", "Weight-", "sick!"])
+  assert len(c.x) == 2 and len(c.y) == 2 and c.klass.txt == "sick!"
+
 def test_data():
   d = Data(csv("../optimiz/auto93.csv"))
-  assert len(d.rows) == 398 and len(d.y) == 3
+  assert len(d.rows) == 398 and len(d.cols.y) == 3
   assert distx(d, d.rows[0], d.rows[0]) == 0
   assert 0 <= disty(d, d.rows[0]) <= 1
   assert disty(d, d.rows[0], p=1) != disty(d, d.rows[0], p=3)

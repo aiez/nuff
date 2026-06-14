@@ -55,11 +55,13 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
       same(xs, ys, cliff=.195, conf=1.36)
       top_tier(groups, ...) names tied for best (min median)
 
-    columns / table
-      Num(txt,at)          numeric column: a named tuple (immutable)
-      Sym(txt,at)          symbolic column: a dict of counts
-      add(col,v)           returns updated col (Num=new tuple, Sym=same)
-      adds(src,col) mid(col) spread(col) norm(col,v)
+    columns / table  (Num, Sym, Cols, Data all just o-records)
+      Num(txt,at) Sym(txt,at)  column summaries (Sym counts in .has)
+      add(col,v)               update in place; adds(src,col) a stream
+      mid(col) spread(col) norm(col,v)
+      Cols(names)              -> o(all, x, y, klass) split by role
+      Data(rows)               -> o(cols, rows); cols is a Cols
+                               Upper=Num lower=Sym; +/-/! goal; ! klass; X skip
       Data(rows)           header sets roles: Upper=Num, lower=Sym,
                            +/-/! = goal, X = skip
 
