@@ -2,8 +2,8 @@
 # test_gape.py: smoke tests, run via `make test` or --name.
 import random
 import os
-from gape import (o, csv, thing, say, main, shuffle, some, same,
-                  top_tier, Cols, Data, clone, likes, confuse,
+from gape import (o, csv, thing, settings, say, main, shuffle, some,
+                  same, top_tier, Cols, Data, clone, likes, confuse,
                   disty, distx)
 
 def test_o():
@@ -11,6 +11,10 @@ def test_o():
 
 def test_thing():
   assert thing("3") == 3 and thing("2.5") == 2.5 and thing("x") == "x"
+
+def test_settings():
+  s = settings("seed=1 p=2 who=tim")
+  assert s.seed == 1 and s.p == 2 and s.who == "tim"
 
 def test_rand():
   "Own RNG -> repeatable; no global state."

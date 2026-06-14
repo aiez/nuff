@@ -40,6 +40,7 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
     records / io / format
       o(dict)        attribute access: d.x is d['x']
       thing(s)       coerce str -> int|float|bool|str
+      settings(s)    every var=val in s -> an o (vals coerced)
       csv(file)      yield typed rows ('#' = comment)
       say(x, dec=2)  pretty str; whole floats as ints
       main(funs)     run funs[name] for each --name in argv

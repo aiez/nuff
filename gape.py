@@ -2,7 +2,7 @@
 # gape.py: tiny python tricks in one file -- records, io, format,
 # rand, stats, columns, distance.  (c) 2026 Tim Menzies, MIT.
 # No global config: pass params (p, cliff, conf, rng) as keywords.
-import sys, random, traceback
+import re, sys, random, traceback
 from math import log2, log, exp, sqrt, pi
 from bisect import bisect_left, bisect_right
 
@@ -21,6 +21,10 @@ def thing(s):
     try: return fn(s)
     except ValueError: pass
   return {"True": True, "False": False}.get(s, s)
+
+def settings(s):
+  "Parse every var=val in a string into an o (vals coerced)."
+  return o(**{k: thing(v) for k, v in re.findall(r"(\w+)=(\S+)", s)})
 
 def csv(file, clean=lambda s: s.partition("#")[0].split(",")):
   "Yield typed rows from a CSV file ('#' starts a comment)."
