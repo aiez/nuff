@@ -57,10 +57,11 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
 
     columns / table  (Num, Sym, Cols, Data all just o-records)
       Num(txt,at) Sym(txt,at)  column summaries (Sym counts in .has)
-      add(col,v)               update in place; adds(src,col) a stream
+      add(it,v)                add v to a Num/Sym, or a row to a Data
+      adds(src,it)             add every item of src to it
       mid(col) spread(col) norm(col,v)
       Cols(names)              -> o(all, x, y, klass) split by role
-      Data(rows)               -> o(cols, rows); cols is a Cols
+      Data(rows)               adds(rows, o(cols, rows)); 1st row = names
                                Upper=Num lower=Sym; +/-/! goal; ! klass; X skip
       Data(rows)           header sets roles: Upper=Num, lower=Sym,
                            +/-/! = goal, X = skip

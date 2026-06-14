@@ -109,16 +109,22 @@ def Sym(txt="", at=0):
   "Symbolic column summary: counts live in `has`."
   return o(txt=txt, at=at, n=0, has={})
 
-def add(col, v, inc=1):
-  "Update a Num or Sym in place with v (inc times). Skips '?'."
+def add(it, v, inc=1):
+  "Add v to a Data (v=row), Sym, or Num, in place. Skips '?'."
+  if "rows" in it:                                 # Data: v is a row
+    if it.cols:
+      for col in it.cols.all: add(col, v[col.at], inc)
+      it.rows.append(v)
+    else: it.cols = Cols(v)
+    return v
   if v == "?": return v
-  col.n += inc
-  if "has" in col:                                 # Sym
-    col.has[v] = col.has.get(v, 0) + inc
+  it.n += inc
+  if "has" in it:                                  # Sym
+    it.has[v] = it.has.get(v, 0) + inc
   else:                                            # Num
-    col.lo, col.hi = min(col.lo, v), max(col.hi, v)
-    d = v - col.mu; col.mu += d / col.n
-    col.m2 += d * (v - col.mu)
+    it.lo, it.hi = min(it.lo, v), max(it.hi, v)
+    d = v - it.mu; it.mu += d / it.n
+    it.m2 += d * (v - it.mu)
   return v
 
 def adds(src, col=None):
@@ -156,19 +162,8 @@ def Cols(names):
   return cols
 
 def Data(src=None):
-  "Table: a Cols summary (data.cols) + the raw rows."
-  data = o(cols=None, rows=[])
-  for row in (src or []): row1(data, row)
-  return data
-
-def row1(data, row):
-  "Add a row; the first row (names) builds the columns."
-  if data.cols:
-    for col in data.cols.all: add(col, row[col.at])
-    data.rows.append(row)
-  else:
-    data.cols = Cols(row)
-  return data
+  "Table (data.cols + data.rows); first row = column names."
+  return adds(src or [], o(cols=None, rows=[]))
 
 # ---- distance: exponent `p` is a keyword, never a global -------
 def minkowski(vals, p=2):
