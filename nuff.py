@@ -185,7 +185,7 @@ def adds(src, it=None):
 
 def clone(data, src=None):
   "New Data with data's columns; optionally seed with src rows."
-  return adds(src or [], Data([data.names]))
+  return Data([data.names, *(src or [])])
 
 def mid(col):
   "Central tendency: mode (Sym) or mean (Num)."
