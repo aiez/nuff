@@ -11,14 +11,15 @@ class o(dict):
   "Dict with attribute access: d.x is d['x']."
   __getattr__ = dict.get
   __setattr__ = dict.__setitem__
+  __delattr__ = dict.__delitem__
   def __repr__(i): return say(i)
 
 def thing(s):
   "Coerce a string to int, float, bool, else str."
+  s = s.strip()
   for fn in (int, float):
     try: return fn(s)
     except ValueError: pass
-  s = s.strip()
   return {"True": True, "False": False}.get(s, s)
 
 def settings(s):
@@ -109,76 +110,97 @@ def top_tier(groups, cliff=0.195, conf=1.36):
     else: break
   return best
 
-# ---- columns: Num, Sym, Cols are all just o-records ------------
-def Num(txt="", at=0):
-  "Numeric column summary (an o-record)."
-  return o(it=Num, txt=txt, at=at, n=0, mu=0, m2=0,
-           heaven=0 if txt[-1:] == "-" else 1)
+# ---- columns: Sym = {value:count}, Num = (n, mu, m2) -----------
+def Sym(): return {}
+def Num(n=0, mu=0, m2=0): return (n, mu, m2)
 
-def Sym(txt="", at=0):
-  "Symbolic column summary: counts live in `has`."
-  return o(it=Sym, txt=txt, at=at, n=0, has={})
+def n_(x):  return x[0]
+def mu_(x): return x[1]
+def m2_(x): return x[2]
 
-def add(i, v, inc=1):
-  "Add v to a Num/Sym/Cols/Data, in place. Skips '?'; inc=-1 subtracts."
-  if i.it is Cols: [add(col, v[col.at], inc) for col in i.all]
-  elif i.it is Data:                                 
-    (i.rows.append if inc == 1 else i.rows.remove)(v)
-    add(i.cols, v, inc)
-  elif v != "?": 
-    i.n += inc
-    if i.it is Sym: i.has[v] = i.has.get(v, 0) + inc
-    elif i.n < 2 and inc < 0: i.n = i.mu = i.m2 = 0
-    else: 
-      d = v - i.mu
-      i.mu += inc * d / i.n
-      i.m2 += inc * d * (v - i.mu)
-  return v
+def symp(x): return type(x) is dict      # plain dict = Sym (o is not)
+def nump(x): return type(x) is tuple     # tuple = Num
 
-def adds(src, col=None):
-  "Summarize an iterable into a Num (default) or given col."
-  col = Num() if col is None else col
-  for v in src: add(col, v)
-  return col
+def sd(num):
+  "Standard deviation of a Num from its m2."
+  n, mu, m2 = num
+  return 0 if n < 2 else (max(0, m2) / (n - 1)) ** 0.5
 
-def mid(col):
-  "Central tendency: mean (Num) or mode (Sym)."
-  return (max(col.has, key=col.has.get) if col.it is Sym
-          else col.mu)
+def welford(num, v, inc=1):
+  "Num + v (inc=-1 removes); returns a new (n, mu, m2)."
+  n, mu, m2 = num
+  if (n := n + inc) <= 0: return Num()
+  d = v - mu; mu += inc * d / n
+  return n, mu, m2 + inc * d * (v - mu)
 
-def spread(col):
-  "Diversity: stdev (Num) or entropy (Sym)."
-  if col.it is Sym:
-    n = col.n
-    return -sum(v/n * log2(v/n) for v in col.has.values())
-  return (col.m2 / (col.n - 1)) ** 0.5 if col.n > 1 else 0
-
-def norm(col, v):
+def norm(num, v):
   "Map v to 0..1 via a logistic on its z-score (Num only)."
   if v == "?": return v
-  z = (v - col.mu) / (spread(col) + 1e-32)
+  z = (v - mu_(num)) / (sd(num) + 1e-32)
   return 1 / (1 + exp(-1.7 * max(-3, min(3, z))))
 
-def Cols(names):
-  """Summaries from header names, split into roles.
-  Upper=Num, lower=Sym; +/-/! = goal y; ! = klass; X = skip."""
-  cols = o(it=Cols, names=names, all=[], x=[], y=[], klass=None)
-  for at, s in enumerate(names):
-    col = Num(s, at) if s[0].isupper() else Sym(s, at)
-    cols.all.append(col)
-    if s[-1] == "X": continue
-    (cols.y if s[-1] in "+-!" else cols.x).append(col)
-    if s[-1] == "!": cols.klass = col
-  return cols
+def mix(i, j, inc=1):
+  "Combine two same-type cols; inc=-1 removes j from i."
+  if symp(i):
+    return {k: i.get(k, 0) + inc * j.get(k, 0) for k in i | j}
+  i_n, i_mu, i_m2 = i; j_n, j_mu, j_m2 = j
+  n = i_n + inc * j_n
+  if n <= 0: return Num()
+  mu = (i_n * i_mu + inc * j_n * j_mu) / n
+  d  = j_mu - i_mu
+  m2 = i_m2 + inc * j_m2 + inc * d * d * i_n * j_n / n
+  return Num(n, mu, m2)
 
+# ---- table: roles in Data, columns held by at-index -----------
 def Data(src=None):
-  "Table: data.cols (from the first row) + data.rows."
+  """Table o(names, cols{at:col}, x, y, goal, klass, rows).
+  Upper=Num lower=Sym; +/-/! = goal y; + maximizes; ! klass; X skip."""
   src = iter(src or [])
-  return adds(src, o(it=Data, cols=Cols(next(src, [])), rows=[]))
+  data = o(names=[], cols={}, x=[], y=[], goal={}, klass=None, rows=[])
+  roles(data, next(src, []))
+  return adds(src, data)
+
+def roles(data, names):
+  "Read header names into column roles (mutates data)."
+  data.names = names
+  for at, s in enumerate(names):
+    data.cols[at] = Num() if s[0].isupper() else Sym()
+    if s[-1] == "X": continue
+    if s[-1] in "+-!":
+      data.y.append(at); data.goal[at] = 1 if s[-1] == "+" else 0
+      if s[-1] == "!": data.klass = at
+    else: data.x.append(at)
+
+def add(it, v, inc=1):
+  "Add to a Sym/Num/Data; RETURNS the (new) it. Skips '?'."
+  if symp(it):
+    if v != "?": it[v] = it.get(v, 0) + inc
+    return it
+  if nump(it):
+    return welford(it, v, inc) if v != "?" else it
+  (it.rows.append if inc == 1 else it.rows.remove)(v)      # Data: v a row
+  for at in it.cols: it.cols[at] = add(it.cols[at], v[at], inc)
+  return it
+
+def adds(src, it=None):
+  "Fold src into it (a fresh Num by default); returns it."
+  if it is None: it = Num()
+  for v in src: it = add(it, v)
+  return it
 
 def clone(data, src=None):
   "New Data with data's columns; optionally seed with src rows."
-  return Data([data.cols.names], src)
+  return adds(src or [], Data([data.names]))
+
+def mid(col):
+  "Central tendency: mode (Sym) or mean (Num)."
+  return max(col, key=col.get) if symp(col) else mu_(col)
+
+def spread(col):
+  "Diversity: entropy (Sym) or stdev (Num)."
+  if nump(col): return sd(col)
+  n = sum(col.values())
+  return -sum(c/n * log2(c/n) for c in col.values())
 
 # ---- distance: exponent `p` is a keyword, never a global -------
 def minkowski(vals, p=2):
@@ -189,36 +211,35 @@ def minkowski(vals, p=2):
 
 def disty(data, row, **kw):
   "Distance of a row to the best goals (0 = ideal)."
-  return minkowski((abs(norm(c, row[c.at]) - c.heaven)
-                    for c in data.cols.y), **kw)
+  return minkowski((abs(norm(data.cols[at], row[at]) - data.goal[at])
+                    for at in data.y if row[at] != "?"), **kw)
 
 def distx(data, r1, r2, **kw):
   "Distance between two rows over the x-columns."
-  return minkowski((gap(c, r1[c.at], r2[c.at])
-                    for c in data.cols.x), **kw)
+  return minkowski((gap(data.cols[at], r1[at], r2[at])
+                    for at in data.x), **kw)
 
 def gap(col, u, v):
   "Distance between two values of one column (0..1)."
   if u == v == "?": return 1
-  if col.it is Sym: return u != v           # Sym
-  u,v = norm(col,u), norm(col,v)
-  u = u if u != "?" else (1 if v < .5 else 0)
-  v = v if v != "?" else (1 if u < .5 else 0)
+  if symp(col): return u != v               # Sym
+  u = norm(col, u) if u != "?" else (1 if v == "?" else 0)
+  v = norm(col, v) if v != "?" else (1 if u == "?" else 0)
   return abs(u - v)
 
 # ---- bayes: naive-bayes likelihood (m, k carried as kwargs) ----
 def like(col, v, prior=0, k=1):
   "How much a column likes value v (Sym: m-estimate, Num: gauss)."
-  if col.it is Sym:
-    return (col.has.get(v, 0) + k * prior) / (col.n + k)
-  sd = spread(col) + 1e-32; z = 2 * sd * sd
-  return exp(-(v - col.mu) ** 2 / z) / sqrt(pi * z)
+  if symp(col):
+    return (col.get(v, 0) + k * prior) / (sum(col.values()) + k)
+  s = sd(col) + 1e-32; z = 2 * s * s
+  return exp(-(v - mu_(col)) ** 2 / z) / sqrt(pi * z)
 
 def likes(data, row, nrows, nklasses, m=2, k=1):
   "Log-likelihood of a row under this data (naive bayes)."
   prior = (len(data.rows) + m) / (nrows + m * nklasses)
-  ls = [like(c, v, prior, k) for c in data.cols.x
-        if (v := row[c.at]) != "?"]
+  ls = [like(data.cols[at], v, prior, k) for at in data.x
+        if (v := row[at]) != "?"]
   return log(prior) + sum(log(x) for x in ls if x > 0)
 
 def confuse(pairs):

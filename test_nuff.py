@@ -1,13 +1,13 @@
 #!/usr/bin/env python3 -B
 """test_nuff.py: nuff smoke tests.
 
-Usage: python3 -B test_gape.py [--name ...] [--seed=N]
+Usage: python3 -B test_nuff.py [--name ...] [--seed=N]
   no --name runs every test; -h shows this help.
 """
 import random
 import os
 from nuff import (o, csv, thing, settings, say, main, shuffle, some,
-                  same, top_tier, Cols, Data, clone, likes, confuse,
+                  same, top_tier, Data, clone, likes, confuse,
                   disty, distx)
 
 def test_o():
@@ -28,12 +28,13 @@ def test_rand():
   assert len(some(xs, 5, rng=random.Random(1))) == 5
 
 def test_cols():
-  c = Cols(["name", "Age", "Weight-", "sick!"])
-  assert len(c.x) == 2 and len(c.y) == 2 and c.klass.txt == "sick!"
+  d = Data([["name", "Age", "Weight-", "sick!"]])
+  assert len(d.x) == 2 and len(d.y) == 2 and d.klass == 3
+  assert d.names[d.klass] == "sick!"
 
 def test_data():
   d = Data(csv("../optimiz/auto93.csv"))
-  assert len(d.rows) == 398 and len(d.cols.y) == 3
+  assert len(d.rows) == 398 and len(d.y) == 3
   assert distx(d, d.rows[0], d.rows[0]) == 0
   assert 0 <= disty(d, d.rows[0]) <= 1
   assert disty(d, d.rows[0], p=1) != disty(d, d.rows[0], p=3)
@@ -42,7 +43,7 @@ def test_like():
   "naive bayes self-classify beats chance (needs ../klassif)."
   f = "../klassif/diabetes.csv"
   if not os.path.exists(f): return
-  d = Data(csv(f)); k = d.cols.klass.at
+  d = Data(csv(f)); k = d.klass
   g = {}
   for r in d.rows: g.setdefault(r[k], []).append(r)
   ds = {cl: clone(d, rows) for cl, rows in g.items()}

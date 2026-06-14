@@ -56,20 +56,23 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
       same(xs, ys, cliff=.195, conf=1.36)
       top_tier(groups, ...) names tied for best (min median)
 
-    columns / table  (Num, Sym, Cols, Data: o-records tagged i.it)
-      Num(txt,at) Sym(txt,at)  column summaries (Sym counts in .has)
-      add(i,v,inc=1)           one polymorphic add; dispatch on i.it:
-                               Num/Sym value, Cols/Data a whole row.
-                               inc=-1 subtracts (Num resets if n<2)
-      adds(src,col)            add every item of src to col
-      mid(col) spread(col)     mean/mode, stdev/entropy
-      norm(col,v)              0..1 via a logistic on v's z-score
-      Cols(names)              -> o(names, all, x, y, klass) by role
-      Data(rows)               -> o(cols, rows); first row = names
+    columns  (lightweight: Sym = {value:count}, Num = (n, mu, m2);
+              symp/nump dispatch by type, no tags)
+      Sym() Num(n,mu,m2)       a dict / a 3-tuple; n_/mu_/m2_ read it
+      welford(num,v,inc=1)     Num + v (inc=-1 removes) -> new Num
+      mix(i,j,inc=1)           merge two same-type cols (inc=-1 = out)
+      mid(col) spread(col)     mode/mean, entropy/stdev
+      norm(num,v)              0..1 via a logistic on v's z-score (Num)
+
+    table  (immutable cols -> add RETURNS the new it, never mutates)
+      add(it,v,inc=1)          fold v into a Sym/Num, or a row into a
+                               Data; returns it (inc=-1 subtracts)
+      adds(src,it=None)        fold all of src into it (default a Num)
+      Data(rows)               -> o(names, cols{at:col}, x, y, goal,
+                               klass, rows); first row = the header.
+                               Upper=Num lower=Sym; +/-/! = goal y;
+                               + maximizes; ! = klass; X = skip
       clone(data, src=None)    new Data, same columns, fresh rows
-                               Upper=Num lower=Sym; +/-/! goal; ! klass; X skip
-      Data(rows)           header sets roles: Upper=Num, lower=Sym,
-                           +/-/! = goal, X = skip
 
     distance  (exponent `p` is a keyword)
       minkowski(vals, p=2)
