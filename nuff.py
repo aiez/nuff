@@ -138,12 +138,12 @@ def mix(i, j, inc=1):
   "Combine two same-type cols; inc=-1 removes j from i."
   if symp(i):
     return {k: i.get(k, 0) + inc * j.get(k, 0) for k in i | j}
-  i_n, i_mu, i_m2 = i; j_n, j_mu, j_m2 = j
-  n = i_n + inc * j_n
+  (ni, mui, m2i), (nj, muj, m2j) = i, j
+  n = ni + inc * nj
   if n <= 0: return Num()
-  mu = (i_n * i_mu + inc * j_n * j_mu) / n
-  d  = j_mu - i_mu
-  m2 = i_m2 + inc * j_m2 + inc * d * d * i_n * j_n / n
+  d  = muj - mui
+  mu = (ni * mui + inc * nj * muj) / n
+  m2 = m2i + inc * m2j + inc * d * d * ni * nj / n
   return Num(n, mu, m2)
 
 # ---- table: roles in Data, columns held by at-index -----------
