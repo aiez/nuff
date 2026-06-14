@@ -1,5 +1,5 @@
 #!/usr/bin/env python3 -B
-# gape.py: tiny python tricks in one file -- records, io, format,
+# nuff.py: tiny python tricks in one file -- records, io, format,
 # rand, stats, columns, distance.  (c) 2026 Tim Menzies, MIT.
 # No global config: pass params (p, cliff, conf, rng) as keywords.
 import re, sys, random, traceback

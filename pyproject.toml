@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "gape"
+name = "nuff"
 version = "0.1.0"
-readme = ",gape.md"
+readme = ",nuff.md"
 description = "Tiny stdlib-only python tricks: records, io, stats, columns, distance"
 authors = [{name = "Tim Menzies", email = "timm@ieee.org"}]
 license = {text = "MIT"}
@@ -13,12 +13,12 @@ requires-python = ">=3.12"
 dependencies = []          # stdlib only, by design
 
 [tool.setuptools]
-py-modules = ["gape"]
+py-modules = ["nuff"]
 
 [project.urls]
-Homepage = "http://tiny.cc/gape"
+Homepage = "http://tiny.cc/nuff"
 
-# linting: gape's minimal style on purpose -- 2-space indent, short
+# linting: nuff's minimal style on purpose -- 2-space indent, short
 # names (o, i, v, n), terse one-liners, # header not a docstring.
 [tool.pylint.format]
 indent-string = "  "         # 2 spaces -> silences W0311

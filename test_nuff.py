@@ -1,12 +1,12 @@
 #!/usr/bin/env python3 -B
-"""test_gape.py: gape smoke tests.
+"""test_nuff.py: nuff smoke tests.
 
 Usage: python3 -B test_gape.py [--name ...] [--seed=N]
   no --name runs every test; -h shows this help.
 """
 import random
 import os
-from gape import (o, csv, thing, settings, say, main, shuffle, some,
+from nuff import (o, csv, thing, settings, say, main, shuffle, some,
                   same, top_tier, Cols, Data, clone, likes, confuse,
                   disty, distx)
 
