@@ -45,17 +45,18 @@ def say(x, dec=2):
     return "[" + ", ".join(say(v, dec) for v in x) + "]"
   return str(x)
 
-def main(funs, argv=None, seed=1):
-  """Run --name funs (or all if none named); reseed before each.
-  --seed=N overrides the default random seed (1)."""
+def main(g, argv=None, seed=1):
+  """Run g's test_* fns: --name picks some, none = all; reseed
+  each. --seed=N sets the seed. Pass globals() as g."""
+  fns = {k[5:]: v for k, v in g.items() if k.startswith("test_")}
   argv = sys.argv[1:] if argv is None else argv
   for a in argv:
     if a.startswith("--seed="): seed = int(a.split("=", 1)[1])
   named = [a[2:] for a in argv if a[:2] == "--" and "=" not in a]
   fails = 0
-  for name in ([n for n in named if n in funs] or list(funs)):
+  for name in ([n for n in named if n in fns] or list(fns)):
     random.seed(seed)
-    try: funs[name]()
+    try: fns[name]()
     except Exception: fails += 1; traceback.print_exc()
   return fails
 
