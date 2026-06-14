@@ -218,10 +218,9 @@ def gap(col, u, v):
   "Distance between two values of one column (0..1)."
   if u == v == "?": return 1
   if isa(col, Sym): return u != v           # Sym
-  if u != "?": u = norm(col, u)             # normalize known
-  if v != "?": v = norm(col, v)             # values first ...
-  if u == "?": u = 1 if v < 0.5 else 0      # ... then a missing
-  if v == "?": v = 1 if u < 0.5 else 0      # one goes far away
+  u, v = norm(col, u), norm(col, v)         # "?" passes through
+  if u == "?": u = 1 if v < 0.5 else 0      # a missing value
+  if v == "?": v = 1 if u < 0.5 else 0      # goes to the far end
   return abs(u - v)
 
 # ---- bayes: naive-bayes likelihood (m, k as kwargs) -----------
