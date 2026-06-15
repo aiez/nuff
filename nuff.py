@@ -313,22 +313,22 @@ def treePredict(t, row):
     t = t.left if has(row[t.at], t.lo, t.hi) else t.right
   return t.mu
 
-def treeRows(data, t, best, worst, out, lvl=0, tag=""):
-  "Flatten to rows of [mark, d2h, n, goal-means..., tree-text]."
-  def cue(t):                                   # the split label
-    nm = data.names[t.at]                       # 'Clndrs <= 5' etc
-    return (f"{nm} == {say(t.lo)}" if t.lo == t.hi
-            else f"{nm} <= {say(t.hi)}")
+def treeRows(data, t, best, worst, out, lvl=0, edge=""):
+  "Rows of [mark,d2h,n,goal-means,text]; edge=test that reached node."
+  def cue(t, yes):                              # edge label into a child
+    nm = data.names[t.at]                       # 'Kloc <= 182' / 'Kloc > 182'
+    if t.lo == t.hi:
+      return f"{nm} == {say(t.lo)}" if yes else f"{nm} != {say(t.lo)}"
+    return f"{nm} <= {say(t.hi)}" if yes else f"{nm} > {say(t.hi)}"
   mark = "+" if t.at is None and t.mu == best else \
          "-" if t.at is None and t.mu == worst else ""
-  txt = "|  "*lvl + tag + ("" if t.at is None else cue(t))
   out += [[mark, say(t.mu), say(t.n)]
-          + [say(v) for v in t.ymid] + [txt]]
+          + [say(v) for v in t.ymid] + ["|  "*max(0, lvl-1) + edge]]
   if t.at is not None:
-    kids = [(t.left, "y "), (t.right, "n ")]
+    kids = [(t.left, cue(t, True)), (t.right, cue(t, False))]
     kids.sort(key=lambda kt: kt[0].mu)            # better first
-    for kid, tg in kids:
-      treeRows(data, kid, best, worst, out, lvl+1, tg)
+    for kid, e in kids:
+      treeRows(data, kid, best, worst, out, lvl+1, e)
 
 def treeShow(data, t):
   "+/- best/worst leaf, d2h, n, goal means, then the tree."
