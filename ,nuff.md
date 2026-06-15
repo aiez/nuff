@@ -43,6 +43,7 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
       settings(s)    every var=val in s -> an o (vals coerced)
       csv(file)      yield typed rows ('#' = comment)
       say(x, dec=2)  pretty str; whole floats as ints
+      sho(rows,just) align list[list[str]] to cols; just='>'/'<'
       main(funs)     run funs[name] for each --name in argv
 
     rand   (pass your own random.Random(seed) for repeatability)

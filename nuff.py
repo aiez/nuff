@@ -43,6 +43,13 @@ def say(x, dec=2):
     return "[" + ", ".join(say(v, dec) for v in x) + "]"
   return str(x)
 
+def sho(rows, just):
+  "Align rows (list[list[str]]) to columns; just='>'/'<' per col."
+  w = [max(len(r[c]) for r in rows) for c in range(len(just))]
+  j = lambda c, s: s.rjust(w[c]) if just[c] == ">" else s.ljust(w[c])
+  return "\n".join("  ".join(j(c, s) for c, s in enumerate(r)).rstrip()
+                   for r in rows)
+
 def main(g, help=None, argv=None, seed=1):
   """Run g's test_* fns: --name picks some, none=all; reseed.
   -h prints `help` (default g's __doc__) + the commands. --seed=N

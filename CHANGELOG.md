@@ -28,6 +28,8 @@ Lightweight column model (modeled on fft.py). **Breaking.**
   per the ezr/Aha rule. Old code collapsed the gap toward 0.
 - `data.goal[at]` is now a bool (`s[-1] == "+"`).
 - Export `BIG = 1e32` (the "no cut yet" sentinel).
+- Add `sho(rows, just)` — align a `list[list[str]]` into columns;
+  `just` is a `'>'`/`'<'` per-column right/left justify string.
 - **`like(col, v, n=0, prior=0, k=1)`** gains an `n` (row count)
   arg; the Sym denominator uses it instead of `sum(col.values())`
   (Sym no longer stores its own count). `likes` passes it for you.
