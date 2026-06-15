@@ -260,3 +260,90 @@ def confuse(pairs):
                prec=tp / (tp + fp + 1e-32),
                acc=(tp + tn) / (n + 1e-32))
   return out
+
+# ---- tree: a min-variance binary tree over the x-columns ------
+def has(v, lo, hi): return v == "?" or lo <= v <= hi
+
+def treeCuts(data, rows, y):
+  "Yield (score, at, lo, hi, yes-Num, no-Num); mu_ = expecteds."
+  ys = [y(r) for r in rows]
+  for at in data.x:
+    sym, grp, tot = isa(data.cols[at], Sym), {}, Num()
+    for r, z in zip(rows, ys):
+      if (v := r[at]) != "?":
+        grp[v], tot = add(grp.get(v) or Num(), z), add(tot, z)
+    yes, keys = Num(), (list(grp) if sym else sorted(grp)[:-1])
+    for v in keys:                       # group | prefix
+      yes = grp[v] if sym else mix(yes, grp[v])
+      no  = mix(tot, yes, -1)
+      yield yes[2] + no[2], at, (v if sym else -BIG), v, yes, no
+
+def treeCut(data, rows, y, leaf=3):
+  "The lowest-variance cut (whole tuple), or None."
+  ok = (c for c in treeCuts(data, rows, y) if c[4][0] >= leaf)
+  return min(ok, key=lambda c: c[0], default=None)
+
+def treeMid(data, rows, at):
+  "Mean (Num) or mode (Sym) of goal col `at` over rows."
+  xs = [r[at] for r in rows if r[at] != "?"]
+  if not xs: return "?"
+  return (max(set(xs), key=xs.count) if isa(data.cols[at], Sym)
+          else sum(xs)/len(xs))
+
+def tree(data, rows=None, y=None, leaf=3, lvl=0, maxDepth=12):
+  "Build a min-variance binary tree; leaves keep the disty mean."
+  rows = data.rows if rows is None else rows
+  y = y or (lambda r: disty(data, r))
+  ys = [y(r) for r in rows]
+  t = o(at=None, mu=sum(ys)/len(ys), n=len(rows),
+        ymid=[treeMid(data, rows, a) for a in data.y])
+  if len(rows) >= 2*leaf and lvl < maxDepth and \
+     (cut := treeCut(data, rows, y, leaf)):
+    at, lo, hi = cut[1:4]
+    yes, no = [], []
+    for r in rows:                                # one pass
+      (yes if has(r[at], lo, hi) else no).append(r)
+    if len(yes) >= leaf and len(no) >= leaf:
+      t.at, t.lo, t.hi = at, lo, hi
+      t.left  = tree(data, yes, y, leaf, lvl+1, maxDepth)
+      t.right = tree(data, no,  y, leaf, lvl+1, maxDepth)
+  return t
+
+def treePredict(t, row):
+  "Walk to a leaf; return its disty mean."
+  while t.at is not None:
+    t = t.left if has(row[t.at], t.lo, t.hi) else t.right
+  return t.mu
+
+def treeCue(data, t):
+  "The split label, e.g. 'Clndrs <= 5' or 'origin == 2'."
+  nm = data.names[t.at]
+  return (f"{nm} == {say(t.lo)}" if t.lo == t.hi
+          else f"{nm} <= {say(t.hi)}")
+
+def treeRows(data, t, best, worst, out, lvl=0, tag=""):
+  "Flatten to rows of [mark, d2h, n, goal-means..., tree-text]."
+  mark = "+" if t.at is None and t.mu == best else \
+         "-" if t.at is None and t.mu == worst else ""
+  cue = "" if t.at is None else treeCue(data, t)
+  txt = "|  "*lvl + tag + cue
+  out += [[mark, say(t.mu), say(t.n)]
+          + [say(v) for v in t.ymid] + [txt]]
+  if t.at is not None:
+    kids = [(t.left, "y "), (t.right, "n ")]
+    kids.sort(key=lambda kt: kt[0].mu)            # better first
+    for kid, tg in kids:
+      treeRows(data, kid, best, worst, out, lvl+1, tg)
+
+def treeShow(data, t):
+  "+/- best/worst leaf, d2h, n, goal means, then the tree."
+  mus = []
+  def leaves(t):
+    if t.at is None: mus.append(t.mu)
+    else: leaves(t.left); leaves(t.right)
+  leaves(t)
+  ynm = [data.names[a] for a in data.y]
+  head = ["", "d2h", "n"] + ynm + ["tree"]
+  out = [head]
+  treeRows(data, t, min(mus), max(mus), out)
+  print(sho(out, ">"*(len(head)-1) + "<"))        # nums>, tree<

@@ -30,6 +30,11 @@ Lightweight column model (modeled on fft.py). **Breaking.**
 - Export `BIG = 1e32` (the "no cut yet" sentinel).
 - Add `sho(rows, just)` — align a `list[list[str]]` into columns;
   `just` is a `'>'`/`'<'` per-column right/left justify string.
+- Add a min-variance **binary tree** over the x-columns:
+  `tree(data)` builds it (leaves keep the disty mean + per-goal
+  means); `treeCuts`/`treeCut` find splits (group-by-value, exact,
+  no binning); `treePredict(t,row)`; `treeShow(data,t)` prints a
+  table (+/- best/worst leaf, d2h, n, goal means, then the tree).
 - **`like(col, v, n=0, prior=0, k=1)`** gains an `n` (row count)
   arg; the Sym denominator uses it instead of `sum(col.values())`
   (Sym no longer stores its own count). `likes` passes it for you.

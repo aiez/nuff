@@ -88,6 +88,13 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
       confuse(pairs)                        (want,got) -> per-class
                                             o(pd, pf, prec, acc)
 
+    tree  (min-variance binary tree; exact cuts, no binning)
+      tree(data, leaf=3, maxDepth=12)       build; y defaults to disty
+      treeCuts(data, rows, y)               yield candidate cuts
+      treeCut(data, rows, y, leaf=3)        the best cut (or None)
+      treePredict(t, row)                   leaf disty mean for a row
+      treeShow(data, t)                     table: +/- d2h n ymeans tree
+
 ## STYLE
 
     Minimal python: one file, one-line comments, ~65-char lines,

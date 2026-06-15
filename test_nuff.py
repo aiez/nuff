@@ -8,7 +8,7 @@ import random
 import os
 from nuff import (o, csv, thing, settings, say, main, shuffle, some,
                   same, top_tier, Data, clone, likes, confuse,
-                  disty, distx)
+                  disty, distx, tree, treePredict, treeShow)
 
 def test_o():
   p = o(a=1, b=3.0); assert p.a == 1 and say(p.b) == "3"
@@ -60,6 +60,14 @@ def test_stats():
   assert same([1,2,3,4], [1,2,3,4])
   assert not same([1,2,3,4], [7,8,9,10])
   assert list(top_tier({"a":[1,2,3], "b":[9,9,9]})) == ["a"]
+
+def test_tree():
+  "Build + print a min-variance tree on auto93."
+  d = Data(csv("../optimiz/auto93.csv"))
+  t = tree(d)
+  assert t.at is not None                  # the root split
+  assert 0 <= treePredict(t, d.rows[0]) <= 1
+  treeShow(d, t)                            # the print check
 
 if __name__ == "__main__":
   raise SystemExit(main(globals(), __doc__))   # __doc__ = help above
