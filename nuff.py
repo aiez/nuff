@@ -7,6 +7,7 @@ from math import log2, log, exp, sqrt, pi
 from bisect import bisect_left, bisect_right
 from types import SimpleNamespace as o   # o(a=1).a == 1
 isa = isinstance
+BIG = 1e32                               # "no cut yet" sentinel
 
 # ---- records, io, format --------------------------------------
 def thing(s):
