@@ -198,6 +198,10 @@ def mid(col):
   "Central tendency: mode (Sym) or mean (Num)."
   return max(col, key=col.get) if isa(col, Sym) else mu_(col)
 
+def mids(data):
+  "Central tendency of every column, keyed by at-index."
+  return {at: mid(col) for at, col in data.cols.items()}
+
 def spread(col):
   "Diversity: entropy (Sym) or stdev (Num)."
   if not isa(col, Sym): return sd(col)        # Num
@@ -283,20 +287,14 @@ def treeCut(data, rows, y, leaf=3):
   ok = (c for c in treeCuts(data, rows, y) if c[4][0] >= leaf)
   return min(ok, key=lambda c: c[0], default=None)
 
-def treeMid(data, rows, at):
-  "Mean (Num) or mode (Sym) of goal col `at` over rows."
-  xs = [r[at] for r in rows if r[at] != "?"]
-  if not xs: return "?"
-  return (max(set(xs), key=xs.count) if isa(data.cols[at], Sym)
-          else sum(xs)/len(xs))
-
 def tree(data, rows=None, y=None, leaf=3, lvl=0, maxDepth=12):
   "Build a min-variance binary tree; leaves keep the disty mean."
   rows = data.rows if rows is None else rows
   y = y or (lambda r: disty(data, r))
   ys = [y(r) for r in rows]
+  m = mids(clone(data, rows))                   # this node's col mids
   t = o(at=None, mu=sum(ys)/len(ys), n=len(rows),
-        ymid=[treeMid(data, rows, a) for a in data.y])
+        ymid=[m[a] for a in data.y])
   if len(rows) >= 2*leaf and lvl < maxDepth and \
      (cut := treeCut(data, rows, y, leaf)):
     at, lo, hi = cut[1:4]
@@ -315,18 +313,15 @@ def treePredict(t, row):
     t = t.left if has(row[t.at], t.lo, t.hi) else t.right
   return t.mu
 
-def treeCue(data, t):
-  "The split label, e.g. 'Clndrs <= 5' or 'origin == 2'."
-  nm = data.names[t.at]
-  return (f"{nm} == {say(t.lo)}" if t.lo == t.hi
-          else f"{nm} <= {say(t.hi)}")
-
 def treeRows(data, t, best, worst, out, lvl=0, tag=""):
   "Flatten to rows of [mark, d2h, n, goal-means..., tree-text]."
+  def cue(t):                                   # the split label
+    nm = data.names[t.at]                       # 'Clndrs <= 5' etc
+    return (f"{nm} == {say(t.lo)}" if t.lo == t.hi
+            else f"{nm} <= {say(t.hi)}")
   mark = "+" if t.at is None and t.mu == best else \
          "-" if t.at is None and t.mu == worst else ""
-  cue = "" if t.at is None else treeCue(data, t)
-  txt = "|  "*lvl + tag + cue
+  txt = "|  "*lvl + tag + ("" if t.at is None else cue(t))
   out += [[mark, say(t.mu), say(t.n)]
           + [say(v) for v in t.ymid] + [txt]]
   if t.at is not None:
