@@ -268,25 +268,6 @@ def confuse(pairs):
 # ---- tree: a min-variance binary tree over the x-columns ------
 def has(v, lo, hi): return v == "?" or lo <= v <= hi
 
-def treeCuts(data, rows, y):
-  "Yield (score, at, lo, hi, yes-Num, no-Num); mu_ = expecteds."
-  ys = [y(r) for r in rows]
-  for at in data.x:
-    sym, grp, tot = isa(data.cols[at], Sym), {}, Num()
-    for r, z in zip(rows, ys):
-      if (v := r[at]) != "?":
-        grp[v], tot = add(grp.get(v) or Num(), z), add(tot, z)
-    yes, keys = Num(), (list(grp) if sym else sorted(grp)[:-1])
-    for v in keys:                       # group | prefix
-      yes = grp[v] if sym else mix(yes, grp[v])
-      no  = mix(tot, yes, -1)
-      yield yes[2] + no[2], at, (v if sym else -BIG), v, yes, no
-
-def treeCut(data, rows, y, leaf=3):
-  "The lowest-variance cut (whole tuple), or None."
-  ok = (c for c in treeCuts(data, rows, y) if c[4][0] >= leaf)
-  return min(ok, key=lambda c: c[0], default=None)
-
 def tree(data, rows=None, y=None, leaf=3, lvl=0, maxDepth=12):
   "Build a min-variance binary tree; leaves keep the disty mean."
   rows = data.rows if rows is None else rows
@@ -306,6 +287,27 @@ def tree(data, rows=None, y=None, leaf=3, lvl=0, maxDepth=12):
       t.left  = tree(data, yes, y, leaf, lvl+1, maxDepth)
       t.right = tree(data, no,  y, leaf, lvl+1, maxDepth)
   return t
+
+def treeCut(data, rows, y, leaf=3):
+  "The lowest-variance cut (whole tuple), or None."
+  ok = (c for c in _treeCut1(data, rows, y) if c[4][0] >= leaf)
+  return min(ok, key=lambda c: c[0], default=None)
+
+def _treeCut1(data, rows, y):
+  "Yield (score, at, lo, hi, yes-Num, no-Num). Sort by x, walk boundaries."
+  ys = {id(r): y(r) for r in rows}
+  for at in data.x:
+    sym = isa(data.cols[at], Sym)
+    rs  = sorted((r for r in rows if r[at] != "?"), key=lambda r: r[at])
+    tot = Num()
+    for r in rs: tot = add(tot, ys[id(r)])
+    yes = run = Num()
+    for k, r in enumerate(rs):
+      run = add(run, ys[id(r)])
+      if k+1 < len(rs) and rs[k+1][at] == r[at]: continue   # only cut at boundaries
+      grp = run if sym else (yes := mix(yes, run)); run = Num()
+      no  = mix(tot, grp, -1)
+      yield grp[2] + no[2], at, (r[at] if sym else -BIG), r[at], grp, no
 
 def treePredict(t, row):
   "Walk to a leaf; return its disty mean."
