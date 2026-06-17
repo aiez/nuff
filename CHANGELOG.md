@@ -30,8 +30,8 @@ Lightweight column model (modeled on fft.py). **Breaking.**
 - Export `BIG = 1e32` (the "no cut yet" sentinel).
 - Add `sho(rows, just)` — align a `list[list[str]]` into columns;
   `just` is a `'>'`/`'<'` per-column right/left justify string.
-- FFT support, minimal: all fft knowledge lives in `walk(t)` (fans a
-  tree into FFT decision-lists). `dfan(t)` = `min(walk(t), key=leaf-mu)`
+- FFT support, minimal: all fft knowledge lives in `ffts(t)` (fans a
+  tree into FFT decision-lists). `fft(t)` = `min(ffts(t), key=leaf-mu)`
   picks the best FFT. `treePredict` walks a tree OR an FFT (tree nodes
   carry `yes=True`, FFT nodes carry the exit side). `tree` is always
   per-node ("many"); depth via `maxDepth`. (No ifan/`pick`/`-D`.)

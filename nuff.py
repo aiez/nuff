@@ -320,8 +320,8 @@ def treePredict(t, row):
     t = t.left if has(row[t.at], t.lo, t.hi) == t.yes else t.right
   return t.mu
 
-# ---- FFTs: walk is the only fft-aware code; dfan picks one -----
-def walk(t):
+# ---- FFTs: `ffts` is the only fft-aware code; `fft` picks one -
+def ffts(t):
   "Fan a tree into FFTs: each level, one child exits as a leaf."
   if t.at is None:
     yield "", t
@@ -329,25 +329,25 @@ def walk(t):
     for yes in (False, True):                   # which child exits
       ex, cont = (t.left, t.right) if yes else (t.right, t.left)
       lf = o(at=None, mu=ex.mu, n=ex.n)          # exit collapsed to leaf
-      for bias, rest in walk(cont):
+      for bias, rest in ffts(cont):
         yield str(int(yes)) + bias, o(at=t.at, lo=t.lo, hi=t.hi,
                  yes=yes, left=lf, right=rest)
 
-def fanLeaves(t):
+def fftLeaves(t):
   "An FFT's leaves: the exit leaf per cue, plus the final leaf."
   while t.at is not None:
     yield t.left; t = t.right
   yield t
 
-def dfan(t, guard=3):
+def fft(t, guard=3):
   "From t's fan, the FFT with the lowest leaf-mu (leaves n>=guard)."
   def lo(f):
-    ms = [lf.mu for lf in fanLeaves(f) if lf.n >= guard]
+    ms = [lf.mu for lf in fftLeaves(f) if lf.n >= guard]
     return min(ms) if ms else BIG
-  return min((f for _, f in walk(t)), key=lo)
+  return min((f for _, f in ffts(t)), key=lo)
 
 # ---- tree: pretty-print as an indented table ------------------
-def _treeRows(data, t, best, worst, out, lvl=0, edge=""):
+def _treeShow1(data, t, best, worst, out, lvl=0, edge=""):
   "Rows of [mark,d2h,n,goal-means,text]; edge=test that reached node."
   def cue(t, yes):                              # edge label into a child
     nm = data.names[t.at]                       # 'Kloc <= 182' / 'Kloc > 182'
@@ -362,7 +362,7 @@ def _treeRows(data, t, best, worst, out, lvl=0, edge=""):
     kids = [(t.left, cue(t, True)), (t.right, cue(t, False))]
     kids.sort(key=lambda kt: kt[0].mu)            # better first
     for kid, e in kids:
-      _treeRows(data, kid, best, worst, out, lvl+1, e)
+      _treeShow1(data, kid, best, worst, out, lvl+1, e)
 
 def treeShow(data, t):
   "+/- best/worst leaf, d2h, n, goal means, then the tree."
@@ -374,5 +374,5 @@ def treeShow(data, t):
   ynm = [data.names[a] for a in data.y]
   head = ["", "d2h", "n"] + ynm + ["tree"]
   out = [head]
-  _treeRows(data, t, min(mus), max(mus), out)
+  _treeShow1(data, t, min(mus), max(mus), out)
   print(sho(out, ">"*(len(head)-1) + "<"))        # nums>, tree<
