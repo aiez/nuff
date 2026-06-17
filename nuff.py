@@ -269,8 +269,30 @@ def confuse(pairs):
                acc=(tp + tn) / (n + 1e-32))
   return out
 
-# ---- tree: a min-variance binary tree over the x-columns ------
+# ---- tree: build a min-variance binary tree over the x-columns -
 def has(v, lo, hi): return v == "?" or lo <= v <= hi
+
+def _separate(data, rows, y):
+  "Yield each (score, at, lo, hi, yes-Num, no-Num) split candidate."
+  ys = {id(r): y(r) for r in rows}
+  for at in data.x:
+    sym = isa(data.cols[at], Sym)
+    rs  = sorted((r for r in rows if r[at] != "?"), key=lambda r: r[at])
+    tot = Num()
+    for r in rs: tot = add(tot, ys[id(r)])
+    yes = run = Num()
+    for k, r in enumerate(rs):
+      run = add(run, ys[id(r)])
+      if k+1 < len(rs) and rs[k+1][at] == r[at]: continue   # only cut at boundaries
+      grp = run if sym else (yes := mix(yes, run)); run = Num()
+      no  = mix(tot, grp, -1)
+      lo  = r[at] if sym else -BIG
+      yield m2_(grp) + m2_(no), at, lo, r[at], grp, no
+
+def treeCut(data, rows, y, leaf=3):
+  "The lowest-variance cut (whole tuple), or None."
+  ok = (c for c in _separate(data, rows, y) if n_(c[4]) >= leaf)
+  return min(ok, key=lambda c: c[0], default=None)
 
 def tree(data, rows=None, y=None, leaf=3, lvl=0, maxDepth=12):
   "Min-variance binary tree; leaves keep the disty mean. yes=match."
@@ -292,7 +314,13 @@ def tree(data, rows=None, y=None, leaf=3, lvl=0, maxDepth=12):
       t.right = tree(data, no,  y, leaf, lvl+1, maxDepth)
   return t
 
-# ---- FFTs: walk is the only fft-aware code; dfan picks one ------
+def treePredict(t, row):
+  "Walk a tree OR an FFT to a leaf; return its disty mean."
+  while t.at is not None:                        # yes-side = left
+    t = t.left if has(row[t.at], t.lo, t.hi) == t.yes else t.right
+  return t.mu
+
+# ---- FFTs: walk is the only fft-aware code; dfan picks one -----
 def walk(t):
   "Fan a tree into FFTs: each level, one child exits as a leaf."
   if t.at is None:
@@ -318,34 +346,7 @@ def dfan(t, guard=3):
     return min(ms) if ms else BIG
   return min((f for _, f in walk(t)), key=lo)
 
-def treeCut(data, rows, y, leaf=3):
-  "The lowest-variance cut (whole tuple), or None."
-  ok = (c for c in _separate(data, rows, y) if n_(c[4]) >= leaf)
-  return min(ok, key=lambda c: c[0], default=None)
-
-def _separate(data, rows, y):
-  "Yield each (score, at, lo, hi, yes-Num, no-Num) split candidate."
-  ys = {id(r): y(r) for r in rows}
-  for at in data.x:
-    sym = isa(data.cols[at], Sym)
-    rs  = sorted((r for r in rows if r[at] != "?"), key=lambda r: r[at])
-    tot = Num()
-    for r in rs: tot = add(tot, ys[id(r)])
-    yes = run = Num()
-    for k, r in enumerate(rs):
-      run = add(run, ys[id(r)])
-      if k+1 < len(rs) and rs[k+1][at] == r[at]: continue   # only cut at boundaries
-      grp = run if sym else (yes := mix(yes, run)); run = Num()
-      no  = mix(tot, grp, -1)
-      lo  = r[at] if sym else -BIG
-      yield m2_(grp) + m2_(no), at, lo, r[at], grp, no
-
-def treePredict(t, row):
-  "Walk a tree OR an FFT to a leaf; return its disty mean."
-  while t.at is not None:                        # yes-side = left
-    t = t.left if has(row[t.at], t.lo, t.hi) == t.yes else t.right
-  return t.mu
-
+# ---- tree: pretty-print as an indented table ------------------
 def _treeRows(data, t, best, worst, out, lvl=0, edge=""):
   "Rows of [mark,d2h,n,goal-means,text]; edge=test that reached node."
   def cue(t, yes):                              # edge label into a child
