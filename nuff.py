@@ -346,7 +346,7 @@ def treePredict(t, row):
     t = t.left if has(row[t.at], t.lo, t.hi) == t.yes else t.right
   return t.mu
 
-def treeRows(data, t, best, worst, out, lvl=0, edge=""):
+def _treeRows(data, t, best, worst, out, lvl=0, edge=""):
   "Rows of [mark,d2h,n,goal-means,text]; edge=test that reached node."
   def cue(t, yes):                              # edge label into a child
     nm = data.names[t.at]                       # 'Kloc <= 182' / 'Kloc > 182'
@@ -361,7 +361,7 @@ def treeRows(data, t, best, worst, out, lvl=0, edge=""):
     kids = [(t.left, cue(t, True)), (t.right, cue(t, False))]
     kids.sort(key=lambda kt: kt[0].mu)            # better first
     for kid, e in kids:
-      treeRows(data, kid, best, worst, out, lvl+1, e)
+      _treeRows(data, kid, best, worst, out, lvl+1, e)
 
 def treeShow(data, t):
   "+/- best/worst leaf, d2h, n, goal means, then the tree."
@@ -373,5 +373,5 @@ def treeShow(data, t):
   ynm = [data.names[a] for a in data.y]
   head = ["", "d2h", "n"] + ynm + ["tree"]
   out = [head]
-  treeRows(data, t, min(mus), max(mus), out)
+  _treeRows(data, t, min(mus), max(mus), out)
   print(sho(out, ">"*(len(head)-1) + "<"))        # nums>, tree<
