@@ -294,14 +294,14 @@ def tree(data, rows=None, y=None, leaf=3, lvl=0, maxDepth=12, pick=None):
       t.right = tree(data, no,  y, leaf, lvl+1, maxDepth, pick)
   return t
 
-def treeOnce(data, y, leaf=3, depth=4):
-  "Oblivious 'once' pick: rank root cuts, node at lvl uses order[lvl]."
+def treeOnce(data, rows, y, leaf=3, depth=4):
+  "Oblivious 'once' pick over `rows`; node at lvl uses order[lvl]."
   best = {}
-  for c in _treeCut1(data, data.rows, y):
+  for c in _treeCut1(data, rows, y):
     if c[4][0] >= leaf and (c[1] not in best or c[0] < best[c[1]][0]):
       best[c[1]] = c
   order = [c[1:4] for c in sorted(best.values(), key=lambda z: z[0])[:depth]]
-  return lambda rows, lvl: order[lvl] if lvl < len(order) else None
+  return lambda rs, lvl: order[lvl] if lvl < len(order) else None
 
 def walk(t):
   "Fan a tree into FFTs: each level, one child exits as a leaf."
