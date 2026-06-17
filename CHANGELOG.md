@@ -30,10 +30,11 @@ Lightweight column model (modeled on fft.py). **Breaking.**
 - Export `BIG = 1e32` (the "no cut yet" sentinel).
 - Add `sho(rows, just)` — align a `list[list[str]]` into columns;
   `just` is a `'>'`/`'<'` per-column right/left justify string.
-- FFT support (ported from fft.py): `tree(...,pick=)` controls cut
-  selection; `treeOnce(data,y)` is the oblivious "once" (ifan) pick
-  (default per-node = "many"/dfan); `walk(t)` fans a tree into FFT
-  decision-lists; `fftPredict(t,row)` scores via an FFT.
+- FFT support, minimal: all fft knowledge lives in `walk(t)` (fans a
+  tree into FFT decision-lists). `dfan(t)` = `min(walk(t), key=leaf-mu)`
+  picks the best FFT. `treePredict` walks a tree OR an FFT (tree nodes
+  carry `yes=True`, FFT nodes carry the exit side). `tree` is always
+  per-node ("many"); depth via `maxDepth`. (No ifan/`pick`/`-D`.)
 - Add a min-variance **binary tree** over the x-columns:
   `tree(data)` builds it (leaves keep the disty mean + per-goal
   means); `treeCuts`/`treeCut` find splits (group-by-value, exact,

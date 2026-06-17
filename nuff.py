@@ -268,41 +268,27 @@ def confuse(pairs):
 # ---- tree: a min-variance binary tree over the x-columns ------
 def has(v, lo, hi): return v == "?" or lo <= v <= hi
 
-def treeMany(data, y, leaf=3):
-  "Per-node 'many' pick: the best cut of this node's rows."
-  def pick(rows, lvl):
-    c = treeCut(data, rows, y, leaf); return c and c[1:4]
-  return pick
-
-def tree(data, rows=None, y=None, leaf=3, lvl=0, maxDepth=12, pick=None):
-  "Min-variance tree; pick(rows,lvl)->(at,lo,hi) selects each cut."
+def tree(data, rows=None, y=None, leaf=3, lvl=0, maxDepth=12):
+  "Min-variance binary tree; leaves keep the disty mean. yes=match."
   rows = data.rows if rows is None else rows
-  y    = y or (lambda r: disty(data, r))
-  pick = pick or treeMany(data, y, leaf)
+  y = y or (lambda r: disty(data, r))
   ys = [y(r) for r in rows]
   m = mids(clone(data, rows))                   # this node's col mids
   t = o(at=None, mu=sum(ys)/len(ys), n=len(rows),
         ymid=[m[a] for a in data.y])
-  if len(rows) >= 2*leaf and lvl < maxDepth and (cut := pick(rows, lvl)):
-    at, lo, hi = cut
+  if len(rows) >= 2*leaf and lvl < maxDepth and \
+     (cut := treeCut(data, rows, y, leaf)):
+    at, lo, hi = cut[1:4]
     yes, no = [], []
     for r in rows:                                # one pass
       (yes if has(r[at], lo, hi) else no).append(r)
     if len(yes) >= leaf and len(no) >= leaf:
-      t.at, t.lo, t.hi = at, lo, hi
-      t.left  = tree(data, yes, y, leaf, lvl+1, maxDepth, pick)
-      t.right = tree(data, no,  y, leaf, lvl+1, maxDepth, pick)
+      t.at, t.lo, t.hi, t.yes = at, lo, hi, True   # go left on match
+      t.left  = tree(data, yes, y, leaf, lvl+1, maxDepth)
+      t.right = tree(data, no,  y, leaf, lvl+1, maxDepth)
   return t
 
-def treeOnce(data, rows, y, leaf=3, depth=4):
-  "Oblivious 'once' pick over `rows`; node at lvl uses order[lvl]."
-  best = {}
-  for c in _treeCut1(data, rows, y):
-    if c[4][0] >= leaf and (c[1] not in best or c[0] < best[c[1]][0]):
-      best[c[1]] = c
-  order = [c[1:4] for c in sorted(best.values(), key=lambda z: z[0])[:depth]]
-  return lambda rs, lvl: order[lvl] if lvl < len(order) else None
-
+# ---- FFTs: walk is the only fft-aware code; dfan picks one ------
 def walk(t):
   "Fan a tree into FFTs: each level, one child exits as a leaf."
   if t.at is None:
@@ -315,11 +301,18 @@ def walk(t):
         yield str(int(yes)) + bias, o(at=t.at, lo=t.lo, hi=t.hi,
                  yes=yes, left=lf, right=rest)
 
-def fftPredict(t, row):
-  "Predict via an FFT (walk output): exit-leaf when match == yes."
+def fanLeaves(t):
+  "An FFT's leaves: the exit leaf per cue, plus the final leaf."
   while t.at is not None:
-    t = t.left if has(row[t.at], t.lo, t.hi) == t.yes else t.right
-  return t.mu
+    yield t.left; t = t.right
+  yield t
+
+def dfan(t, guard=3):
+  "From t's fan, the FFT with the lowest leaf-mu (leaves n>=guard)."
+  def lo(f):
+    ms = [lf.mu for lf in fanLeaves(f) if lf.n >= guard]
+    return min(ms) if ms else BIG
+  return min((f for _, f in walk(t)), key=lo)
 
 def treeCut(data, rows, y, leaf=3):
   "The lowest-variance cut (whole tuple), or None."
@@ -343,9 +336,9 @@ def _treeCut1(data, rows, y):
       yield grp[2] + no[2], at, (r[at] if sym else -BIG), r[at], grp, no
 
 def treePredict(t, row):
-  "Walk to a leaf; return its disty mean."
-  while t.at is not None:
-    t = t.left if has(row[t.at], t.lo, t.hi) else t.right
+  "Walk a tree OR an FFT to a leaf; return its disty mean."
+  while t.at is not None:                        # yes-side = left
+    t = t.left if has(row[t.at], t.lo, t.hi) == t.yes else t.right
   return t.mu
 
 def treeRows(data, t, best, worst, out, lvl=0, edge=""):
