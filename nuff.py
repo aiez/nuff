@@ -50,6 +50,12 @@ def sho(rows, just):
   return "\n".join("  ".join(j(c, s) for c, s in enumerate(r)).rstrip()
                    for r in rows)
 
+def run(fns, name, seed):
+  "Reseed, run one test_* fn; return 1 on failure else 0."
+  random.seed(seed)
+  try: fns[name](); return 0
+  except Exception: traceback.print_exc(); return 1
+
 def main(g, help=None, argv=None, seed=1):
   """Run g's test_* fns: --name picks some, none=all; reseed.
   -h prints `help` (default g's __doc__) + the commands. --seed=N
@@ -64,12 +70,8 @@ def main(g, help=None, argv=None, seed=1):
   for a in argv:
     if a.startswith("--seed="): seed = int(a.split("=", 1)[1])
   named = [a[2:] for a in argv if a[:2] == "--" and "=" not in a]
-  def run(name):
-    "Reseed, run one test_*; return 1 on failure else 0."
-    random.seed(seed)
-    try: fns[name](); return 0
-    except Exception: traceback.print_exc(); return 1
-  return sum(run(n) for n in ([n for n in named if n in fns] or list(fns)))
+  todo = [n for n in named if n in fns] or list(fns)
+  return sum(run(fns, n, seed) for n in todo)
 
 # ---- rand: own random.Random(seed) for repeatability ----------
 def shuffle(lst, rng=random):
