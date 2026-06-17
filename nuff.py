@@ -268,14 +268,17 @@ def confuse(pairs):
 # ---- tree: a min-variance binary tree over the x-columns ------
 def has(v, lo, hi): return v == "?" or lo <= v <= hi
 
+def treeMany(data, y, leaf=3):
+  "Per-node 'many' pick: the best cut of this node's rows."
+  def pick(rows, lvl):
+    c = treeCut(data, rows, y, leaf); return c and c[1:4]
+  return pick
+
 def tree(data, rows=None, y=None, leaf=3, lvl=0, maxDepth=12, pick=None):
   "Min-variance tree; pick(rows,lvl)->(at,lo,hi) selects each cut."
   rows = data.rows if rows is None else rows
-  y = y or (lambda r: disty(data, r))
-  def many(rs, lv):                             # default: per-node cut
-    c = treeCut(data, rs, y, leaf)
-    return c and c[1:4]
-  pick = pick or many
+  y    = y or (lambda r: disty(data, r))
+  pick = pick or treeMany(data, y, leaf)
   ys = [y(r) for r in rows]
   m = mids(clone(data, rows))                   # this node's col mids
   t = o(at=None, mu=sum(ys)/len(ys), n=len(rows),
