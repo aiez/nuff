@@ -318,11 +318,11 @@ def dfan(t, guard=3):
 
 def treeCut(data, rows, y, leaf=3):
   "The lowest-variance cut (whole tuple), or None."
-  ok = (c for c in _treeCut1(data, rows, y) if c[4][0] >= leaf)
+  ok = (c for c in _separate(data, rows, y) if c[4][0] >= leaf)
   return min(ok, key=lambda c: c[0], default=None)
 
-def _treeCut1(data, rows, y):
-  "Yield (score, at, lo, hi, yes-Num, no-Num). Sort by x, walk boundaries."
+def _separate(data, rows, y):
+  "Yield each (score, at, lo, hi, yes-Num, no-Num) split candidate."
   ys = {id(r): y(r) for r in rows}
   for at in data.x:
     sym = isa(data.cols[at], Sym)
