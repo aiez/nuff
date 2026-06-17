@@ -121,7 +121,9 @@ def top_tier(groups, cliff=0.195, conf=1.36):
 # ---- columns: a Sym is a {value:count} dict, Num a 3-tuple ----
 Sym = dict                 # isa(col, Sym) reads "col is a Sym"
 def Num(n=0, mu=0, m2=0): return (n, mu, m2)  # count,mean,sumsq
-def mu_(x): return x[1]    # the mean of a Num (n, mu, m2)
+def n_(x):  return x[0]    # a Num's count   (n, mu, m2)
+def mu_(x): return x[1]    # a Num's mean
+def m2_(x): return x[2]    # a Num's sum of squares
 
 def sd(num):
   "Standard deviation of a Num from its m2."
@@ -318,7 +320,7 @@ def dfan(t, guard=3):
 
 def treeCut(data, rows, y, leaf=3):
   "The lowest-variance cut (whole tuple), or None."
-  ok = (c for c in _separate(data, rows, y) if c[4][0] >= leaf)
+  ok = (c for c in _separate(data, rows, y) if n_(c[4]) >= leaf)
   return min(ok, key=lambda c: c[0], default=None)
 
 def _separate(data, rows, y):
@@ -335,7 +337,8 @@ def _separate(data, rows, y):
       if k+1 < len(rs) and rs[k+1][at] == r[at]: continue   # only cut at boundaries
       grp = run if sym else (yes := mix(yes, run)); run = Num()
       no  = mix(tot, grp, -1)
-      yield grp[2] + no[2], at, (r[at] if sym else -BIG), r[at], grp, no
+      lo  = r[at] if sym else -BIG
+      yield m2_(grp) + m2_(no), at, lo, r[at], grp, no
 
 def treePredict(t, row):
   "Walk a tree OR an FFT to a leaf; return its disty mean."
