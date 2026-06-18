@@ -296,22 +296,23 @@ def _separate(data, rows, y, Y=Num):
       yield _impurity(grp) + _impurity(no), at, lo, r[at], grp, no, n
 
 def treeCut(data, rows, y, leaf=3, Y=Num):
-  "The lowest-impurity cut (whole tuple), or None."
+  "The (at, lo, hi) of the lowest-impurity cut, or None."
   ok = (c for c in _separate(data, rows, y, Y) if c[6] >= leaf)
-  return min(ok, key=lambda c: c[0], default=None)
+  best = min(ok, key=lambda c: c[0], default=None)
+  return best and best[1:4]
 
 def tree(data, rows=None, y=None, leaf=3, lvl=0, maxDepth=12, Y=Num):
   """Min-impurity binary tree; yes=match. Y=Num+y=disty -> regression
   (leaf mu=mean); Y=Sym+y=class label -> classification (leaf mu=mode)."""
   rows = data.rows if rows is None else rows
-  y = y or (lambda r: disty(data, r))
-  yc = adds((y(r) for r in rows), Y())          # this node's y summary
-  m = mids(clone(data, rows))                   # this node's col mids
-  t = o(at=None, mu=mid(yc), n=len(rows),
-        ymid=[m[a] for a in data.y])
+  y    = y or (lambda r: disty(data, r))
+  yc   = adds((y(r) for r in rows), Y())
+  what = lambda a: Num() if isa(data.cols[a], tuple) else Sym()
+  ymid = [mid( adds( (r[a] for r in rows), what(a))) for a in data.y]
+  t = o(at=None, mu=mid(yc), n=len(rows), ymid=ymid)
   if len(rows) >= 2*leaf and lvl < maxDepth and _impurity(yc) > 0 and \
      (cut := treeCut(data, rows, y, leaf, Y)):   # stop on a pure node
-    at, lo, hi = cut[1:4]
+    at, lo, hi = cut
     yes, no = [], []
     for r in rows:                                # one pass
       (yes if has(r[at], lo, hi) else no).append(r)
