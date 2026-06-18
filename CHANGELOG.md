@@ -26,6 +26,10 @@ Lightweight column model (modeled on fft.py). **Breaking.**
 - **Fixed `gap`** for missing values: normalize the known values
   first, then push a missing value to the far end (max distance),
   per the ezr/Aha rule. Old code collapsed the gap toward 0.
+- `csv` yields **tuples**, not lists, so rows are hashable and can
+  key a cache directly (no `tuple(r)` at call sites). Rows are never
+  mutated in place, so this is safe. Don't pass a nuff row to code
+  that assigns `row[i] = ...` (e.g. ezr's `oracleNearest`).
 - `data.goal[at]` is now a bool (`s[-1] == "+"`).
 - Export `BIG = 1e32` (the "no cut yet" sentinel).
 - Add `sho(rows, just)` — align a `list[list[str]]` into columns;

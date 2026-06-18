@@ -29,7 +29,7 @@ def csv(file, clean=lambda s: s.partition("#")[0].split(",")):
     for line in f:
       row = clean(line)
       if any(x.strip() for x in row):
-        yield [thing(x) for x in row]
+        yield tuple(thing(x) for x in row)   # hashable: rows key caches
 
 def say(x, dec=2):
   "Pretty string: whole floats as ints, else `dec` places."
@@ -274,15 +274,15 @@ def has(v, lo, hi): return v == "?" or lo <= v <= hi
 
 def _separate(data, rows, y):
   "Yield each (score, at, lo, hi, yes-Num, no-Num) split candidate."
-  ys = {id(r): y(r) for r in rows}
+  ys = {r: y(r) for r in rows}             # cache disty per (hashable) row
   for at in data.x:
     sym = isa(data.cols[at], Sym)
     rs  = sorted((r for r in rows if r[at] != "?"), key=lambda r: r[at])
     tot = Num()
-    for r in rs: tot = add(tot, ys[id(r)])
+    for r in rs: tot = add(tot, ys[r])
     yes = run = Num()
     for k, r in enumerate(rs):
-      run = add(run, ys[id(r)])
+      run = add(run, ys[r])
       if k+1 < len(rs) and rs[k+1][at] == r[at]: continue   # only cut at boundaries
       grp = run if sym else (yes := mix(yes, run)); run = Num()
       no  = mix(tot, grp, -1)
