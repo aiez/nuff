@@ -210,7 +210,7 @@ def spread(col):
   "Diversity: entropy (Sym) or stdev (Num)."
   if not isa(col, Sym): return sd(col)        # Num
   n = sum(col.values())
-  return -sum(c/n * log2(c/n) for c in col.values())
+  return -sum(c/n * log2(c/n) for c in col.values() if c)   # 0*log0 = 0
 
 # ---- distance: exponent `p` is a keyword, never global --------
 def minkowski(vals, p=2):
@@ -263,7 +263,7 @@ def confuse(pairs):
     fn = sum(want == k and got != k for want, got in pairs)
     fp = sum(want != k and got == k for want, got in pairs)
     tn = n - tp - fn - fp
-    out[k] = o(label=k, pd=tp / (tp + fn + 1e-32),
+    out[k] = o(label=k, n=tp + fn, pd=tp / (tp + fn + 1e-32),
                pf=fp / (fp + tn + 1e-32),
                prec=tp / (tp + fp + 1e-32),
                acc=(tp + tn) / (n + 1e-32))
@@ -272,50 +272,57 @@ def confuse(pairs):
 # ---- tree: build a min-variance binary tree over the x-columns -
 def has(v, lo, hi): return v == "?" or lo <= v <= hi
 
-def _separate(data, rows, y):
-  "Yield each (score, at, lo, hi, yes-Num, no-Num) split candidate."
-  ys = {r: y(r) for r in rows}             # cache disty per (hashable) row
+def _impurity(col):
+  "Split cost: a Num's sum-of-squares, or a Sym's entropy*count."
+  return m2_(col) if isa(col, tuple) else spread(col) * sum(col.values())
+
+def _separate(data, rows, y, Y=Num):
+  "Yield each (score, at, lo, hi, yes, no, n) split candidate; Y=y-col kind."
+  ys = {r: y(r) for r in rows}             # cache y per (hashable) row
   for at in data.x:
     sym = isa(data.cols[at], Sym)
     rs  = sorted((r for r in rows if r[at] != "?"), key=lambda r: r[at])
-    tot = Num()
+    tot = Y()
     for r in rs: tot = add(tot, ys[r])
-    yes = run = Num()
+    yes, run, run_n = Y(), Y(), 0           # distinct objs: Sym add mutates in place
     for k, r in enumerate(rs):
-      run = add(run, ys[r])
+      run = add(run, ys[r]); run_n += 1
       if k+1 < len(rs) and rs[k+1][at] == r[at]: continue   # only cut at boundaries
-      grp = run if sym else (yes := mix(yes, run)); run = Num()
+      if sym: grp, n = run, run_n
+      else:   grp, n = (yes := mix(yes, run)), k+1
+      run = Y(); run_n = 0
       no  = mix(tot, grp, -1)
       lo  = r[at] if sym else -BIG
-      yield m2_(grp) + m2_(no), at, lo, r[at], grp, no
+      yield _impurity(grp) + _impurity(no), at, lo, r[at], grp, no, n
 
-def treeCut(data, rows, y, leaf=3):
-  "The lowest-variance cut (whole tuple), or None."
-  ok = (c for c in _separate(data, rows, y) if n_(c[4]) >= leaf)
+def treeCut(data, rows, y, leaf=3, Y=Num):
+  "The lowest-impurity cut (whole tuple), or None."
+  ok = (c for c in _separate(data, rows, y, Y) if c[6] >= leaf)
   return min(ok, key=lambda c: c[0], default=None)
 
-def tree(data, rows=None, y=None, leaf=3, lvl=0, maxDepth=12):
-  "Min-variance binary tree; leaves keep the disty mean. yes=match."
+def tree(data, rows=None, y=None, leaf=3, lvl=0, maxDepth=12, Y=Num):
+  """Min-impurity binary tree; yes=match. Y=Num+y=disty -> regression
+  (leaf mu=mean); Y=Sym+y=class label -> classification (leaf mu=mode)."""
   rows = data.rows if rows is None else rows
   y = y or (lambda r: disty(data, r))
-  ys = [y(r) for r in rows]
+  yc = adds((y(r) for r in rows), Y())          # this node's y summary
   m = mids(clone(data, rows))                   # this node's col mids
-  t = o(at=None, mu=sum(ys)/len(ys), n=len(rows),
+  t = o(at=None, mu=mid(yc), n=len(rows),
         ymid=[m[a] for a in data.y])
-  if len(rows) >= 2*leaf and lvl < maxDepth and \
-     (cut := treeCut(data, rows, y, leaf)):
+  if len(rows) >= 2*leaf and lvl < maxDepth and _impurity(yc) > 0 and \
+     (cut := treeCut(data, rows, y, leaf, Y)):   # stop on a pure node
     at, lo, hi = cut[1:4]
     yes, no = [], []
     for r in rows:                                # one pass
       (yes if has(r[at], lo, hi) else no).append(r)
     if len(yes) >= leaf and len(no) >= leaf:
       t.at, t.lo, t.hi, t.yes = at, lo, hi, True   # go left on match
-      t.left  = tree(data, yes, y, leaf, lvl+1, maxDepth)
-      t.right = tree(data, no,  y, leaf, lvl+1, maxDepth)
+      t.left  = tree(data, yes, y, leaf, lvl+1, maxDepth, Y)
+      t.right = tree(data, no,  y, leaf, lvl+1, maxDepth, Y)
   return t
 
 def treePredict(t, row):
-  "Walk a tree OR an FFT to a leaf; return its disty mean."
+  "Walk a tree OR an FFT to a leaf; return its value (disty mean / class mode)."
   while t.at is not None:                        # yes-side = left
     t = t.left if has(row[t.at], t.lo, t.hi) == t.yes else t.right
   return t.mu
@@ -354,8 +361,9 @@ def _treeShow1(data, t, best, worst, out, lvl=0, edge=""):
     if t.lo == t.hi:
       return f"{nm} == {say(t.lo)}" if yes else f"{nm} != {say(t.lo)}"
     return f"{nm} <= {say(t.hi)}" if yes else f"{nm} > {say(t.hi)}"
-  mark = "+" if t.at is None and t.mu == best else \
-         "-" if t.at is None and t.mu == worst else ""
+  num  = isa(t.mu, (int, float))                # +/- only ranks regression leaves
+  mark = "+" if t.at is None and num and t.mu == best else \
+         "-" if t.at is None and num and t.mu == worst else ""
   out += [[mark, say(t.mu), say(t.n)]
           + [say(v) for v in t.ymid] + ["|  "*max(0, lvl-1) + edge]]
   if t.at is not None:

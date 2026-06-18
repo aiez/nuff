@@ -6,9 +6,18 @@ Usage: python3 -B test_nuff.py [--name ...] [--seed=N]
 """
 import random
 import os
-from nuff import (o, csv, thing, settings, say, main, shuffle, some,
+from nuff import (o, Sym, csv, thing, settings, say, sho, main, shuffle, some,
                   same, top_tier, Data, clone, likes, confuse,
                   disty, distx, tree, treePredict, treeShow)
+
+def _confuseShow(name, m):
+  "Print a confuse() result as an aligned per-class table (% scores, class RHS)."
+  pct = lambda x: say(round(100 * x))             # 0.82 -> 82
+  rows = [["n", "pd", "pf", "prec", "acc", ""]]
+  for lab, c in sorted(m.items()):
+    rows.append([say(c.n), pct(c.pd), pct(c.pf), pct(c.prec), pct(c.acc), str(lab)])
+  print(f"\n{name}:")
+  print(sho(rows, ">"*5 + "<"))                   # nums right, class label RHS
 
 def test_o():
   p = o(a=1, b=3.0); assert p.a == 1 and say(p.b) == "3"
@@ -62,12 +71,28 @@ def test_stats():
   assert list(top_tier({"a":[1,2,3], "b":[9,9,9]})) == ["a"]
 
 def test_tree():
-  "Build + print a min-variance tree on auto93."
+  "Build + print a min-variance regression tree on auto93."
   d = Data(csv("../optimiz/auto93.csv"))
-  t = tree(d)
+  t = tree(d, leaf=30)                      # bigger leaf -> compact tree
   assert t.at is not None                  # the root split
   assert 0 <= treePredict(t, d.rows[0]) <= 1
   treeShow(d, t)                            # the print check
+
+def test_tree_classify():
+  "Classification trees (Y=Sym); print confuse stats for each dataset."
+  for name, leaf, floor in [("diabetes", 30, 0.75), ("soybean", 20, 0.55)]:
+    f = f"../klassif/{name}.csv"
+    if not os.path.exists(f): continue
+    d = Data(csv(f)); k = d.klass
+    t = tree(d, y=lambda r: r[k], Y=Sym, leaf=leaf)   # discrete y -> class tree
+    pairs = [(r[k], treePredict(t, r)) for r in d.rows]
+    assert treePredict(t, d.rows[0]) in {r[k] for r in d.rows}  # leaf = label
+    treeShow(d, t)                                  # show the tree
+    m = confuse(pairs)                              # nuff's scorer
+    _confuseShow(name, m)
+    acc = sum(w == g for w, g in pairs) / len(pairs)
+    assert acc > floor                              # self-classify beats chance
+    assert all(0 <= c.pd <= 1 and 0 <= c.pf <= 1 for c in m.values())
 
 if __name__ == "__main__":
   raise SystemExit(main(globals(), __doc__))   # __doc__ = help above
