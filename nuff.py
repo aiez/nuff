@@ -11,12 +11,10 @@ BIG = 1e32                               # "no cut yet" sentinel
 
 # ---- records, io, format --------------------------------------
 def thing(s):
-  "Coerce a string to int, float, bool, else str."
-  s = s.strip()
-  for fn in (int, float):
-    try: return fn(s)
-    except ValueError: pass
-  return {"True": True, "False": False}.get(s, s)
+  "Coerce a (trimmed) string to int, float, bool, else str."
+  if (s[1:] if s[:1] == "-" else s).isdigit(): return int(s)
+  try: return float(s)
+  except ValueError: return s=="True" or (s!="False" and s)
 
 def settings(s):
   "Parse every var=val in a string into an o (vals coerced)."
@@ -27,18 +25,17 @@ def csv(file, clean=lambda s: s.partition("#")[0].split(",")):
   "Yield typed rows from a CSV file ('#' starts a comment)."
   with open(file, encoding="utf-8") as f:
     for line in f:
-      row = clean(line)
-      if any(x.strip() for x in row):
-        yield tuple(thing(x) for x in row)   # hashable: rows key caches
+      row = [x.strip() for x in clean(line)]   # strip once, here
+      if any(row):                             # skip blank/comment lines
+        yield tuple(thing(x) for x in row)     # hashable: rows key caches
 
 def say(x, dec=2):
   "Pretty string: whole floats as ints, else `dec` places."
   if isa(x, float):
     return str(int(x)) if x == int(x) else f"{x:.{dec}f}"
   if isa(x, o): x = vars(x)            # unwrap a namespace
-  if isa(x, dict):
-    return "{" + ", ".join(f"{k}: {say(v,dec)}"
-                 for k, v in sorted(x.items())) + "}"
+  if isa(x, dict): return "{" + ", ".join(f"{k}: {say(v,dec)}"
+                          for k, v in sorted(x.items())) + "}"
   if isa(x, (list, tuple)):
     return "[" + ", ".join(say(v, dec) for v in x) + "]"
   return str(x)
@@ -56,17 +53,18 @@ def run(fns, name, seed):
   try: fns[name](); return 0
   except Exception: traceback.print_exc(); return 1
 
+def usage(g, fns, help=None):
+  "Print `help` (default g's __doc__) then the test_* commands."
+  print((help if help is not None else g.get("__doc__") or "").strip())
+  print("\ncommands:", *(" --" + n for n in fns))
+
 def main(g, help=None, argv=None, seed=1):
   """Run g's test_* fns: --name picks some, none=all; reseed.
-  -h prints `help` (default g's __doc__) + the commands. --seed=N
-  sets the seed. Pass globals() as g."""
+  -h prints usage. --seed=N sets the seed. Pass globals() as g."""
   fns = {k[5:]: v for k, v in g.items() if k.startswith("test_")}
   argv = sys.argv[1:] if argv is None else argv
   if "-h" in argv or "--help" in argv:
-    doc = help if help is not None else g.get("__doc__") or ""
-    print(doc.strip())
-    print("\ncommands:", *(" --" + n for n in fns))
-    return 0
+    return usage(g, fns, help) or 0
   for a in argv:
     if a.startswith("--seed="): seed = int(a.split("=", 1)[1])
   named = [a[2:] for a in argv if a[:2] == "--" and "=" not in a]
@@ -160,15 +158,13 @@ def Data(src=None):
   """Table o(names, cols{at:col}, x, y, goal, klass, rows).
   Upper=Num lower=Sym; +-! = y goal (+max); ! klass; X skip."""
   src = iter(src or [])
-  data = o(names=[], cols={}, x=[], y=[], goal={},
+  data = o(names=next(src, []), cols={}, x=[], y=[], goal={},
            klass=None, rows=[])
-  roles(data, next(src, []))
-  return adds(src, data)
+  return adds(src, roles(data))
 
-def roles(data, names):
-  "Read header names into column roles (mutates data)."
-  data.names = names
-  for at, s in enumerate(names):
+def roles(data):
+  "Assign column roles from data.names; returns data."
+  for at, s in enumerate(data.names):
     data.cols[at] = Num() if s[0].isupper() else Sym()
     if s[-1] == "X": continue
     if s[-1] in "+-!":
@@ -176,15 +172,16 @@ def roles(data, names):
       data.goal[at] = s[-1] == "+"
       if s[-1] == "!": data.klass = at
     else: data.x.append(at)
+  return data
 
 def add(it, v, inc=1):
   "Add to a Sym/Num/Data; RETURNS the (new) it. Skips '?'."
   if isa(it, Sym):
     if v != "?": it[v] = it.get(v, 0) + inc
     return it
-  if isa(it, tuple):                          # Num
+  if isa(it, tuple):
     return welford(it, v, inc) if v != "?" else it
-  (it.rows.append if inc == 1 else it.rows.remove)(v)  # row
+  (it.rows.append if inc == 1 else it.rows.remove)(v)
   for at in it.cols: it.cols[at] = add(it.cols[at], v[at], inc)
   return it
 
