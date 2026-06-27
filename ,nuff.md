@@ -21,7 +21,7 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
 
 **Sections:** [NAME](#name) | [DESIGN](#design) | [API](#api) | [STYLE](#style) | [LICENSE](#license) | [AUTHOR](#author)
 
-**Files:** [nuff.py](#file-nuff-py) | [test_nuff.py](#file-test_nuff-py) | [Makefile](#file-makefile) | [pyproject.toml](#file-pyproject-toml)
+**Files:** [nuff.py](http://tiny.cc/nuff#file-nuff-py) | [test_nuff.py](http://tiny.cc/nuff#file-test_nuff-py) | [Makefile](http://tiny.cc/nuff#file-makefile) | [pyproject.toml](http://tiny.cc/nuff#file-pyproject-toml)
 
 ## NAME
 
