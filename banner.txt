@@ -3,5 +3,5 @@
 | '_ \| | | | |_| |_
 | | | | |_| |  _|  _|
 |_| |_|\__,_|_| |_|
-tiny python tricks. http://tiny.cc/nuff
+tiny python tricks. https://github.com/aiez/nuff
 "the kernel under my apps, with no global the. nuff said."

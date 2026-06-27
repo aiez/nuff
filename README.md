@@ -1,7 +1,7 @@
 <!-- Copyright (c) 2026 Tim Menzies, MIT License https://opensource.org/licenses/MIT -->
 <a href="https://timm.fyi"><img align="right" alt="Author" src="https://img.shields.io/badge/Author-timm-dc143c?logo=readme&logoColor=white"></a><img align="right" alt="Language" src="https://img.shields.io/badge/Language-Python%203.12+-000080?logo=python&logoColor=white"><img align="right" alt="Deps" src="https://img.shields.io/badge/Deps-0-32cd32?logo=checkmarx&logoColor=white"><a href="https://choosealicense.com/licenses/mit/"><img align="right" alt="License" src="https://img.shields.io/badge/License-MIT-32cd32?logo=open-source-initiative&logoColor=white"></a><img align="right" alt="Purpose" src="https://img.shields.io/badge/Purpose-Python·Tricks-7b68ee?logo=githubcopilot&logoColor=white"><br>
 
-### [http://tiny.cc/nuff](http://tiny.cc/nuff)
+### [https://github.com/aiez/nuff](https://github.com/aiez/nuff)
 nuff: one tiny file of reusable Python tricks — attribute-dicts,
 typed CSV, pretty-print, seeded randomness, non-parametric stats,
 minimal column summaries, and row distances. Pure stdlib, zero
@@ -21,7 +21,7 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
 
 **Sections:** [NAME](#name) | [DESIGN](#design) | [API](#api) | [STYLE](#style) | [LICENSE](#license) | [AUTHOR](#author)
 
-**Files:** [nuff.py](http://tiny.cc/nuff#file-nuff-py) | [test_nuff.py](http://tiny.cc/nuff#file-test_nuff-py) | [Makefile](http://tiny.cc/nuff#file-makefile) | [pyproject.toml](http://tiny.cc/nuff#file-pyproject-toml)
+**Files:** [nuff.py](https://github.com/aiez/nuff#file-nuff-py) | [test_nuff.py](https://github.com/aiez/nuff#file-test_nuff-py) | [Makefile](https://github.com/aiez/nuff#file-makefile) | [pyproject.toml](https://github.com/aiez/nuff#file-pyproject-toml)
 
 ## NAME
 

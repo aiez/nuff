@@ -16,7 +16,7 @@ dependencies = []          # stdlib only, by design
 py-modules = ["nuff"]
 
 [project.urls]
-Homepage = "http://tiny.cc/nuff"
+Homepage = "https://github.com/aiez/nuff"
 
 # linting: nuff's minimal style on purpose -- 2-space indent, short
 # names (o, i, v, n), terse one-liners, # header not a docstring.
