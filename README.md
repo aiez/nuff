@@ -90,10 +90,17 @@ same(a, b, cliff=0.195, conf=1.36)             # are two samples the same?
 
     tree  (min-variance binary tree; exact cuts, no binning)
       tree(data, leaf=3, maxDepth=12)       build; y defaults to disty
-      treeCuts(data, rows, y)               yield candidate cuts
       treeCut(data, rows, y, leaf=3)        the best cut (or None)
-      treePredict(t, row)                   leaf disty mean for a row
+      treePredict(t, row)                   walk tree or FFT to a leaf;
+                                            its mu (mean / class mode)
       treeShow(data, t)                     table: +/- d2h n ymeans tree
+
+    fft  (fast-and-frugal trees, fanned out from one tree)
+      ffts(t)                yield (bias, fft): each level, one child
+                             exits as a leaf; bias = the exit choices
+      fftLeaves(t)           an FFT's exit leaves plus the final leaf
+      fft(t, guard=3)        the fan's best FFT: lowest leaf mu among
+                             leaves with n >= guard
 
 ## STYLE
 
