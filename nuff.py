@@ -382,3 +382,6 @@ def treeShow(data, t):
   out = [head]
   _treeShow1(data, t, min(mus), max(mus), out)
   print(sho(out, ">"*(len(head)-1) + "<"))        # nums>, tree<
+
+if __name__ == "__main__":
+  sys.exit(main(globals()))   # importable AND runnable; -h = usage

@@ -3,12 +3,23 @@
 
 Usage: python3 -B test_nuff.py [--name ...] [--seed=N]
   no --name runs every test; -h shows this help.
+  $DOOT = gists root for test data (else find_up konfig, else ..).
 """
 import random
 import os
 from nuff import (o, Sym, csv, thing, settings, say, sho, main, shuffle, some,
                   same, top_tier, Data, clone, likes, confuse,
                   disty, distx, tree, treePredict, treeShow)
+
+def find_up(name, then=".."):
+  "Climb parents for a dir holding `name`; else `then`."
+  p = os.path.abspath(".")
+  while p != (q := os.path.dirname(p)):
+    if os.path.isdir(os.path.join(p, name)): return p
+    p = q
+  return then
+
+DOOT = os.environ.get("DOOT") or find_up("konfig")  # gists root
 
 def _confuseShow(name, m):
   "Print a confuse() result as an aligned per-class table (% scores, class RHS)."
@@ -42,15 +53,15 @@ def test_cols():
   assert d.names[d.klass] == "sick!"
 
 def test_data():
-  d = Data(csv("../optimiz/auto93.csv"))
+  d = Data(csv(f"{DOOT}/optimiz/auto93.csv"))
   assert len(d.rows) == 398 and len(d.y) == 3
   assert distx(d, d.rows[0], d.rows[0]) == 0
   assert 0 <= disty(d, d.rows[0]) <= 1
   assert disty(d, d.rows[0], p=1) != disty(d, d.rows[0], p=3)
 
 def test_like():
-  "naive bayes self-classify beats chance (needs ../klassif)."
-  f = "../klassif/diabetes.csv"
+  "naive bayes self-classify beats chance (needs DOOT/klassif)."
+  f = f"{DOOT}/klassif/diabetes.csv"
   if not os.path.exists(f): return
   d = Data(csv(f)); k = d.klass
   g = {}
@@ -72,7 +83,7 @@ def test_stats():
 
 def test_tree():
   "Build + print a min-variance regression tree on auto93."
-  d = Data(csv("../optimiz/auto93.csv"))
+  d = Data(csv(f"{DOOT}/optimiz/auto93.csv"))
   t = tree(d, leaf=30)                      # bigger leaf -> compact tree
   assert t.at is not None                  # the root split
   assert 0 <= treePredict(t, d.rows[0]) <= 1
@@ -81,7 +92,7 @@ def test_tree():
 def test_tree_classify():
   "Classification trees (Y=Sym); print confuse stats for each dataset."
   for name, leaf, floor in [("diabetes", 30, 0.75), ("soybean", 20, 0.55)]:
-    f = f"../klassif/{name}.csv"
+    f = f"{DOOT}/klassif/{name}.csv"
     if not os.path.exists(f): continue
     d = Data(csv(f)); k = d.klass
     t = tree(d, y=lambda r: r[k], Y=Sym, leaf=leaf)   # discrete y -> class tree
